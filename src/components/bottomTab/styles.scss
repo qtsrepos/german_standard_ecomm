@@ -1,0 +1,50 @@
+@use "../../config/styleVariable.scss" as vars;
+
+.bottom-tab {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #fff;
+  padding: 10px 0;
+  // border-top: 1px solid #ddd;
+  z-index: 1000;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+
+  .row {
+    margin: 0;
+    width: 100%;
+  }
+
+  .col {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  svg {
+    font-size: 24px;
+    color: #333;
+  }
+
+  p {
+    font-size: 12px;
+    margin: 2px 0 0;
+    color: #333;
+  }
+
+  .cart-container {
+    position: relative;
+  }
+
+  .text-center {
+    text-align: center;
+    padding: 0 !important;
+  }
+}
+
+.botton-icon.active {
+  p,
+  svg {
+    color: vars.$primary !important;
+  }
+}

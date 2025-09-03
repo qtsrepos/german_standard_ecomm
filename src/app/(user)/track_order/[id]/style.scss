@@ -1,0 +1,33 @@
+
+@use "../../../../config/styleVariable.scss" as global;
+
+.status-div{
+    background-color: global.$grey3;
+    margin: 10px auto;
+    padding: 10px;
+}
+
+.status-div>h6{
+    color: global.$backround;
+    background-color: global.$primary;
+    font-size: 17px;
+    font-weight: 500;
+    margin: 0 0 20px;
+    padding: 5px;
+}
+
+.status-div:hover{
+    box-shadow: 0px 0px 4px 3px rgba(171,163,163,0.75);
+}
+
+.image-div{
+    border: 1px solid #f1f1f1;
+    box-shadow: 0 0 2px 2px #f1f1f1;
+    margin: 0 auto;
+    padding: 10px;
+}
+.image-div>div>div>div>h6{
+
+    margin-top: 10px;
+    color: global.$grey2;
+}

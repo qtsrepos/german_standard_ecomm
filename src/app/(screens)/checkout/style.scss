@@ -1,0 +1,72 @@
+
+@use "../../../config/styleVariable.scss" as global;
+
+.order-section {
+    // border: 1px solid #ddd;
+    width:100%;
+    padding: 30px;
+    // border-radius: 5px;
+    background-color: #f9f9f9;
+
+    @media (max-width:768px) {
+      padding: 17px;
+    }
+  }
+
+  .order-section::after{
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 95%;
+    height: 10px;
+    background-color: transparent;
+    background-image: radial-gradient(farthest-side, transparent 6px, #f7f7f7 0);
+    background-size: 15px 15px;
+    bottom: -10px;
+    background-position: -3px 2px, 0 0;
+    left: 15px;
+  }
+  .order-section::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 95%;
+    height: 10px;
+    background-color: transparent;
+    background-image: radial-gradient(farthest-side, transparent 6px, #f7f7f7 0);
+    background-size: 15px 15px;
+    top: -10px;
+    background-position: -3px -5px, 0 0;
+    left: 15px;
+  }
+  .items{
+    color: global.$grey2;
+    font-size: 14px;
+  }
+  .total {
+    color: global.$primary;
+    font-weight: bold;
+  }
+  .place-order-btn {
+        padding: 8px 0 !important;
+        font-size: 17px !important;
+        border-radius: 24px !important;
+        color: global.$backround !important;
+        width: 100%;
+        box-sizing: content-box !important;
+        // box-shadow: var(--btn-shop-box-shadow);
+        background-color: global.$primary !important;
+  }
+
+  .order-items{
+    background-color: global.$backround;
+    overflow-x: auto;
+    margin-bottom: 20px;
+    padding: 5px 15px;
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .coopen{
+    background-color: global.$primary ;
+    color: global.$backround;
+  }
