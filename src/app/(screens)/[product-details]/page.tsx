@@ -4,8 +4,6 @@ import DetailsCard from "./detailsCard";
 import { GET_SERVER } from "@/util/apicall_server";
 import API from "@/config/API";
 import CONFIG from "@/config/configuration";
-import { getServerSession } from "next-auth/next";
-import { options } from "@/app/api/auth/[...nextauth]/options";
 import './style.scss'
 import { error } from "console";
 async function fetchData(id: string) {

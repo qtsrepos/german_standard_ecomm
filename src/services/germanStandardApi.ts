@@ -22,6 +22,17 @@ export interface LoginResponse {
   };
 }
 
+export interface RefreshTokenResponse {
+  status: string;
+  statusCode: number;
+  message: string;
+  result: {
+    accessToken: string; // JWT token with quotes
+    refreshToken: string; // JWT refresh token with quotes
+    tokenExpiryMin: number;
+  };
+}
+
 export interface CategoryData {
   Id: number;
   Name: string;
@@ -125,6 +136,35 @@ export class GermanStandardApiService {
     } catch (error: any) {
       console.error("German Standard Login API Error:", error);
       throw new Error(error.response?.data?.message || error.message || "Login failed");
+    }
+  }
+
+  /**
+   * Refresh Token API - Regenerate access and refresh tokens
+   */
+  public async refreshTokens(refreshToken: string): Promise<RefreshTokenResponse> {
+    try {
+      const response = await axios.get<RefreshTokenResponse>(
+        API.GERMAN_STANDARD_REFRESH_TOKEN,
+        {
+          params: {
+            refreshToken: refreshToken
+          },
+          headers: {
+            "accept": "text/plain",
+            "Authorization": `Bearer ${refreshToken}`,
+          },
+        }
+      );
+
+      if (response.data?.status === "Success" && response.data?.statusCode === 2000) {
+        return response.data;
+      } else {
+        throw new Error(response.data?.message || "Token refresh failed");
+      }
+    } catch (error: any) {
+      console.error("German Standard Refresh Token API Error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Token refresh failed");
     }
   }
 
@@ -272,6 +312,7 @@ export const germanStandardApi = GermanStandardApiService.getInstance();
 // Export individual functions for easier import
 export const {
   login: germanStandardLogin,
+  refreshTokens: germanStandardRefreshTokens,
   getCategories: germanStandardGetCategories,
   getProducts: germanStandardGetProducts,
   transformCategoriesForRedux: transformCategoriesForRedux,

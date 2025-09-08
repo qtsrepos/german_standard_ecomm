@@ -1,6 +1,7 @@
 import API from "@/config/API";
 import { store } from "@/redux/store/store";
 import { message } from "antd";
+import { getValidAccessToken } from "./tokenRefresh";
 
 const GET = async (
   url: string,
@@ -8,7 +9,7 @@ const GET = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = store.getState()?.Auth?.token ?? " ";
+    const token = await getValidAccessToken();
     const queryParams = new URLSearchParams(params).toString();
     const URL = queryParams ? url + `?${queryParams}` : url;
     const response = await fetch(API.BASE_URL + URL, {
@@ -17,7 +18,7 @@ const GET = async (
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token || ""}`,
       },
     });
     if (!response.ok) {
@@ -38,7 +39,7 @@ const POST = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = store.getState()?.Auth?.token ?? " ";
+    const token = await getValidAccessToken();
     const response = await fetch(API.BASE_URL + url, {
       ...(signal && { signal }),
       method: "POST",
@@ -67,7 +68,7 @@ const PUT = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = store.getState()?.Auth?.token ?? " ";
+    const token = await getValidAccessToken();
     const response = await fetch(API.BASE_URL + url, {
       ...(signal && { signal }),
       method: "PUT",
@@ -120,14 +121,14 @@ const PATCH = async (
 
 const DELETE = async (url: string, signal: AbortSignal | null = null) => {
   try {
-    const token = store.getState()?.Auth?.token ?? " ";
+    const token = await getValidAccessToken();
     const response = await fetch(API.BASE_URL + url, {
       ...(signal && { signal }),
       method: "DELETE",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token || ""}`,
       },
     });
     if (!response.ok) {

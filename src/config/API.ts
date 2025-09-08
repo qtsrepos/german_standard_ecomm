@@ -13,7 +13,6 @@ const API = {
   FILE_UPLOAD: "img_compress/file",
 
   LOGIN_EMAIL: "auth/login", //POST - Legacy endpoint
-  LOGIN_EMAIL_NEW: "http://103.120.178.195/Sang.GermanStandard.API/login/login", //POST - New German Standard API
   USER_REFRESH_TOKEN: "auth/refresh-token", //POST..
   LOGIN_PHONE: "auth/phone-login", //POST
   LOGIN_GMAIL: "auth/google-login", //POST
@@ -77,6 +76,8 @@ const API = {
   // German Standard API endpoints
   GERMAN_STANDARD_LOGIN:
     "http://103.120.178.195/Sang.GermanStandard.API/login/login", //POST login with credentials
+  GERMAN_STANDARD_REFRESH_TOKEN:
+    "http://103.120.178.195/Sang.GermanStandard.API/login/regeneratetokens", //GET refresh tokens
   GERMAN_STANDARD_CATEGORIES:
     "http://103.120.178.195/Sang.GermanStandard.API/tag/getsubcategorybycategory", //GET categories with subcategories
   GERMAN_STANDARD_PRODUCTS:

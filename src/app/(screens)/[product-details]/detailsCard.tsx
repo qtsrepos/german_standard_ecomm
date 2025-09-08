@@ -1,33 +1,23 @@
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
-import { Col, Container, Row } from "react-bootstrap";
-import Images from "./_components/images";
-import { Rate, Avatar } from "antd";
-import Description from "./_components/description";
-import Variants from "./_components/variants";
+import { useSession } from "next-auth/react";
 import {
-  redirect,
   usePathname,
   useRouter,
-  useSearchParams,
+  useSearchParams
 } from "next/navigation";
-import { findVariantWithId } from "./_components/functions";
-import { useSession } from "next-auth/react";
-import Reviews from "./_components/reviews";
-import RelatedProducts from "./_components/relatedProducts";
-import veg from "../../../../public/images/veg.png"
-import nonveg from "../../../../public/images/non veg.png"
-import { FaArrowLeft, FaFacebookF, FaLinkedinIn, FaPinterestP, FaTwitter } from "react-icons/fa6";
+import { useCallback, useEffect, useState } from "react";
+import { Col, Container, Row } from "react-bootstrap";
 import { FaTelegramPlane } from "react-icons/fa";
+import { FaFacebookF, FaLinkedinIn, FaPinterestP, FaTwitter } from "react-icons/fa6";
 import { IoMdMail } from "react-icons/io";
-import { BiBorderAll } from "react-icons/bi";
 import AdditionalInfo from "./_components/additionalInfo";
-import { log } from "console";
+import Description from "./_components/description";
+import { findVariantWithId } from "./_components/functions";
+import Images from "./_components/images";
+import RelatedProducts from "./_components/relatedProducts";
+import Variants from "./_components/variants";
 
-function DetailsCard(props: any) {
-
-  console.log("props", props?.data);
-  //to-do
+function DetailsCard(props: any) {  //to-do
   //functionality of cart,buy now,favourite
   //functionality of react slick in image
   const router = useRouter();
