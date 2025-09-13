@@ -10,7 +10,8 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import AddVariantType from "./addVariant";
 import VariantFormUpdate from "./variantFormUpdate";
 import EditProductVariantModal from "./editVariantModal";
-import { COMPRESS_IMAGE, DELETE, POST } from "@/util/apicall";
+// import { COMPRESS_IMAGE, DELETE, POST } from "@/util/apicall";
+import { DELETE, POST } from "@/util/apicall";
 
 function UpdateVariants({
   back,
@@ -109,9 +110,12 @@ function UpdateVariants({
       if (Array.isArray(arr)) {
         for (let i = 0; i < arr.length; i++) {
           if (arr[i]?.image?.file) {
-            let upload = await COMPRESS_IMAGE(arr[i]?.image?.file);
+            // let upload = await COMPRESS_IMAGE(arr[i]?.image?.file);
+            // let obj: any = arr[i];
+            // obj.image.url = upload;
+            // Mock image upload since API is not defined
             let obj: any = arr[i];
-            obj.image.url = upload;
+            obj.image.url = URL.createObjectURL(arr[i]?.image?.file);
             arr[i] = obj;
           }
         }

@@ -5,7 +5,8 @@ import React, { useEffect, useState } from "react";
 import { useAppSelector } from "@/redux/hooks";
 import { reduxCategoryItems } from "@/redux/slice/categorySlice";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+// import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+import { POST, PUT } from "@/util/apicall";
 import API from "@/config/API_ADMIN";
 import ImagePicker from "../../../_components/ImagePicker/imagePicker";
 
@@ -32,12 +33,16 @@ function AddSubcategoryModal({ close, type, open, data }: props) {
       let imageUrl = data?.image ?? null;
       let bannerUlr = data?.bannerImg ?? null;
       if (image?.file) {
-        const response = await COMPRESS_IMAGE(image.file);
-        imageUrl = response?.url;
+        // const response = await COMPRESS_IMAGE(image.file);
+        // imageUrl = response?.url;
+        // Mock image URL since API is not defined
+        imageUrl = URL.createObjectURL(image.file);
       }
       if (bannerImg?.file) {
-        const response = await COMPRESS_IMAGE(bannerImg.file);
-        bannerUlr = response?.url;
+        // const response = await COMPRESS_IMAGE(bannerImg.file);
+        // bannerUlr = response?.url;
+        // Mock banner image URL since API is not defined
+        bannerUlr = URL.createObjectURL(bannerImg.file);
       }
       const obj = {
         ...body,

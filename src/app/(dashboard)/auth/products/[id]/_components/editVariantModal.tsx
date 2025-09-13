@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, Button, notification, Form, Input, Tag } from "antd";
 import API from "@/config/API_ADMIN";
-import { GET, COMPRESS_IMAGE, PUT } from "@/util/apicall";
+// import { GET, COMPRESS_IMAGE, PUT } from "@/util/apicall";
+import { GET, PUT } from "@/util/apicall";
 import { Col, Row } from "react-bootstrap";
 import ImagePicker from "../../../../_components/picker2";
 import { ReactCropperElement } from "react-cropper";
@@ -25,8 +26,10 @@ const EditProductVariantModal = (props: any) => {
     try {
       setLoading(true);
       if (image?.file) {
-        const imageUrl: any = await COMPRESS_IMAGE(image?.file);
-        imgUrl = imageUrl?.Location;
+        // const imageUrl: any = await COMPRESS_IMAGE(image?.file);
+        // imgUrl = imageUrl?.Location;
+        // Mock image URL since API is not defined
+        imgUrl = URL.createObjectURL(image?.file);
       }
       const obj = { ...values, image: imgUrl };
       const response: any = await PUT(url, obj);

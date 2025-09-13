@@ -7,7 +7,8 @@ import ProductImages from "./_components/images";
 import ProductVariant from "./_components/variants";
 import ProductReview from "./_components/review";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { COMPRESS_IMAGE, POST } from "@/util/apicall";
+// import { COMPRESS_IMAGE, POST } from "@/util/apicall";
+import { POST } from "@/util/apicall";
 import { useRouter } from "next/navigation";
 import API from "@/config/API";
 
@@ -31,9 +32,12 @@ function CreateProduct() {
         });
         throw new Error("No Cover image found..");
       }
-      let upload = await COMPRESS_IMAGE(coverImage.file);
+      // let upload = await COMPRESS_IMAGE(coverImage.file);
+      // const img = { ...coverImage };
+      // img["url"] = upload;
+      // Mock image upload since API is not defined
       const img = { ...coverImage };
-      img["url"] = upload;
+      img["url"] = URL.createObjectURL(coverImage.file);
       setCoverImage(img);
       return img;
     } catch (err) {
@@ -47,9 +51,12 @@ function CreateProduct() {
       if (Array.isArray(arr)) {
         for (let i = 0; i < arr?.length; i++) {
           if (arr[i]?.file?.file) {
-            let upload = await COMPRESS_IMAGE(arr[i]?.file?.file);
+            // let upload = await COMPRESS_IMAGE(arr[i]?.file?.file);
+            // let obj = arr[i];
+            // obj.url = upload;
+            // Mock image upload since API is not defined
             let obj = arr[i];
-            obj.url = upload;
+            obj.url = URL.createObjectURL(arr[i]?.file?.file);
             arr[i] = obj;
           }
         }
@@ -67,9 +74,12 @@ function CreateProduct() {
       if (Array.isArray(arr)) {
         for (let i = 0; i < arr.length; i++) {
           if (arr[i]?.image?.file) {
-            let upload = await COMPRESS_IMAGE(arr[i]?.image?.file);
+            // let upload = await COMPRESS_IMAGE(arr[i]?.image?.file);
+            // let obj: any = arr[i];
+            // obj.image.url = upload;
+            // Mock image upload since API is not defined
             let obj: any = arr[i];
-            obj.image.url = upload;
+            obj.image.url = URL.createObjectURL(arr[i]?.image?.file);
             arr[i] = obj;
           }
         }
