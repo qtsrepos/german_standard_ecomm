@@ -106,12 +106,13 @@ function PhoneVerifyOtp(props: any) {
   const PhoneVerifyOtp = async (token: string) => {
     try {
       setIsLoading(true);
-      let url = API.USER_PHONENUMBER_UPDATE;
+      // let url = API.USER_PHONENUMBER_UPDATE;
+      // Mock response for now since API is not defined
       let body = {
         countryCode: data?.code,
         idToken: token,
       };
-      var loginRes: any = await PUT(url, body);
+      var loginRes: any = { status: false, message: "Phone update API not available" };
       if (loginRes.status == true) {
         notificationApi.success({ message: loginRes.message });
         // dispatch(update(loginRes?.data));

@@ -15,7 +15,9 @@ const EmailVerificationModal = (props: any) => {
   const sendVerificationEmail = async () => {
     try {
       setLoading(true);
-      const response: any = await POST(API.USER_EMAIL_VERIFY, {});
+      // const response: any = await POST(API.USER_EMAIL_VERIFY, {});
+      // Mock response for now since API is not defined
+      const response: any = { status: false, message: "Email verify API not available" };
       if (response?.status) {
         messageApi.success(
           `Verification mail sent successfully. Check your mailbox`

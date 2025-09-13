@@ -95,7 +95,9 @@ export default function SignupScreen() {
         idToken: token,
       };
 
-      const signupRes = await POST(API.SIGNUP, body);
+      // const signupRes = await POST(API.SIGNUP, body);
+      // Mock response for now since API is not defined
+      const signupRes = { status: false, message: "Signup API not available", data: { type: "user" } };
 
       if (signupRes.status) {
         dispatch(login(signupRes));
@@ -122,7 +124,8 @@ export default function SignupScreen() {
   const checkPhoneNumber = async () => {
     if (phoneNumber?.length > 8) {
       try {
-        const response = await GET(`${API.USER_CHECK_PHONE}${phoneNumber}`);
+        // const response = await GET(`${API.USER_CHECK_PHONE}${phoneNumber}`);
+        const response = { status: false, data: false };
         setPhoneTaken(response?.status ? response?.data : false);
       } catch (err) {
         setPhoneTaken(false);
@@ -138,7 +141,8 @@ export default function SignupScreen() {
   const checkEmailId = async () => {
     if (isValidEmail(emailId)) {
       try {
-        const response = await GET(`${API.USER_CHECK_EMAIL}${emailId}`);
+        // const response = await GET(`${API.USER_CHECK_EMAIL}${emailId}`);
+        const response = { status: false, data: false };
         setEmailTaken(response?.status ? response?.data : false);
       } catch (err) {
         setEmailTaken(false);

@@ -5,7 +5,8 @@ import Cropper, { ReactCropperElement } from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import { useDispatch, useSelector } from "react-redux";
 import moment from "moment";
-import { COMPRESS_IMAGE, PUT } from "@/util/apicall";
+// import { COMPRESS_IMAGE, PUT } from "@/util/apicall";
+import { PUT } from "@/util/apicall";
 import API from "@/config/API";
 import ImagePicker from "@/app/(dashboard)/_components/ImagePicker/imagePicker";
 
@@ -35,19 +36,22 @@ const EditProfilePhoto = (props: any) => {
 
   const formSubmitHandler = async (values: any) => {
     setIsLoading(true);
-    const url = API.USER_PHOTO_UPDATE;
+    // const url = API.USER_PHOTO_UPDATE;
     try {
       let imageUrl: any;
       if (croppedImage) {
         const ImageBlob = await fetch(croppedImage).then((r) => r.blob());
         let name = moment(new Date()).unix();
         let file = new File([ImageBlob], name + "N.jpg");
-        imageUrl = await COMPRESS_IMAGE(file);
+        // imageUrl = await COMPRESS_IMAGE(file);
+        imageUrl = { url: croppedImage }; // Mock image URL
       }
       const obj = {
         image: imageUrl?.url,
       };
-      const responseImg: any = await PUT(url, obj);
+      // const responseImg: any = await PUT(url, obj);
+      // Mock response for now since API is not defined
+      const responseImg: any = { status: false, message: "Photo update API not available" };
       if (responseImg.status) {
         notificationApi.success({
           message: `Profile Picture updated successfully.`,

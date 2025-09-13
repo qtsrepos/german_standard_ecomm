@@ -5,7 +5,8 @@ import Cropper, { ReactCropperElement } from "react-cropper";
 import "cropperjs/dist/cropper.css";
 import moment from "moment";
 import API from "@/config/API";
-import { COMPRESS_IMAGE, PUT } from "@/util/apicall";
+// import { COMPRESS_IMAGE, PUT } from "@/util/apicall";
+import { PUT } from "@/util/apicall";
 import ImagePicker from "@/app/(dashboard)/_components/ImagePicker/imagePicker";
 import { useSession } from "next-auth/react";
 
@@ -35,14 +36,15 @@ const EditProfilePhoto = (props: any) => {
 
   const formSubmitHandler = async (values: any) => {
     setIsLoading(true);
-    const url = API.USER_PHOTO_UPDATE;
+    // const url = API.USER_PHOTO_UPDATE;
     try {
       let imageUrl: any;
       if (croppedImage) {
         const ImageBlob = await fetch(croppedImage).then((r) => r.blob());
         let name = moment(new Date()).unix();
         let file = new File([ImageBlob], name + "N.jpg");
-        imageUrl = await COMPRESS_IMAGE(file);
+        // imageUrl = await COMPRESS_IMAGE(file);
+        imageUrl = { url: croppedImage }; // Mock image URL
         await update({
           user: {
             ...session?.user,  
@@ -53,7 +55,9 @@ const EditProfilePhoto = (props: any) => {
       const obj = {
         image: imageUrl?.url,
       };
-      const responseImg: any = await PUT(url, obj);
+      // const responseImg: any = await PUT(url, obj);
+      // Mock response for now since API is not defined
+      const responseImg: any = { status: false, message: "Photo update API not available" };
       if (responseImg.status) {
         notificationApi.success({
           message: `Profile Picture updated successfully.`,
