@@ -22,7 +22,11 @@ function DashboardAdmin() {
   const [date, setDate] = useState<any>(null);
 
   const { data: counts, isLoading } = useQuery({
-    queryKey: [API.DASHBOARD_COUNTS],
+    queryKey: ["dashboard_counts"],
+    queryFn: async () => {
+      // Mock counts data since API is not defined
+      return { status: true, data: {} };
+    },
     select: (data: any) => {
       if (data?.status) return data?.data;
       return {};
@@ -34,7 +38,11 @@ function DashboardAdmin() {
     isLoading: isLoading2,
     refetch,
   } = useQuery({
-    queryKey: [API.DASHBOARD_STATISTICS],
+    queryKey: ["dashboard_statistics"],
+    queryFn: async () => {
+      // Mock statistics data since API is not defined
+      return { status: true, data: {} };
+    },
     select: (data: any) => {
       if (data?.status) return data?.data;
       return {};
@@ -42,7 +50,11 @@ function DashboardAdmin() {
   });
 
   const { data: orderStatistics, isLoading: isLoading3 } = useQuery({
-    queryKey: [API.DASHBOARD_ORDER_STATISTICS, { ...(date && { date }) }],
+    queryKey: ["dashboard_order_statistics", { ...(date && { date }) }],
+    queryFn: async () => {
+      // Mock order statistics data since API is not defined
+      return { status: true, data: {} };
+    },
     select: (data: any) => {
       if (data?.status) return data?.data;
       return {};
