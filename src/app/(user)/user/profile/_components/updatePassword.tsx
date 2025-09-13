@@ -6,35 +6,36 @@ import Image from "next/image";
 import passwordImge from "../../../../../assets/images/passwordchange.png";
 import API from "@/config/API";
 import { PUT } from "@/util/apicall";
+
 const EditPassword = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [notificationApi, contextHolder] = notification.useNotification();
   const [form] = Form.useForm();
   const editPassowrd = async (values: any) => {
-    const url =
-      props?.type == "update"
-        ? API.USER_CHANGE_PASSWORD
-        : props?.type == "add"
-        ? API.USER_ADDNEW_PASSWORD
-        : "";
-    try {
-      setIsLoading(true);
-      const response: any = await PUT(url, values);
-      if (response?.status) {
-        notificationApi.success({ message: `Password updated successfully.` });
-        // dispatch(update(response?.data));
-        form.resetFields();
-        props?.close();
-      } else {
-        notificationApi.error({ message: response.message });
-      }
-    } catch (error: any) {
-      notificationApi.error({
-        message: "Something went wrong. please try again.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    // const url =
+    //   props?.type == "update"
+    //     ? API.USER_CHANGE_PASSWORD
+    //     : props?.type == "add"
+    //     ? API.USER_ADDNEW_PASSWORD
+    //     : "";
+    // try {
+    //   setIsLoading(true);
+    //   const response: any = await PUT(url, values);
+    //   if (response?.status) {
+    //     notificationApi.success({ message: `Password updated successfully.` });
+    //     // dispatch(update(response?.data));
+    //     form.resetFields();
+    //     props?.close();
+    //   } else {
+    //     notificationApi.error({ message: response.message });
+    //   }
+    // } catch (error: any) {
+    //   notificationApi.error({
+    //     message: "Something went wrong. please try again.",
+    //   });
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
 
   return (

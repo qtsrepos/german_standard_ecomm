@@ -54,7 +54,7 @@ function CategoryList() {
       },
       {
         breakpoint: 480,
-        settings: { slidesToShow: 2 , slidesToScroll: 2,},
+        settings: { slidesToShow: 2, slidesToScroll: 2, },
       },
     ],
   };

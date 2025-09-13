@@ -391,6 +391,7 @@ import { checkoutCartItems } from "@/app/(user)/cart/_components/checkoutFunctio
 import "./styles.scss";
 import SummaryCardDrawer from "@/app/(user)/cart/_components/summeryCardDrawer";
 import CartItemDrawer from "@/app/(user)/cart/_components/cartItemsDrawer";
+import { germanStandardApi } from "@/services/germanStandardApi";
 
 interface CartDrawerProps {
   showDrawer: boolean;
@@ -420,7 +421,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const onShowDrawer = () => {
     setOpenDrawer(true);
     loadData();
-    getRecommendations();
+    // getRecommendations();
     dispatch(clearCheckout());
   };
 
@@ -432,24 +433,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     window.scrollTo(0, 0);
   }, [showDrawer]);
 
-  const getRecommendations = async () => {
-    try {
-      if (session) {
-        const url = API.USER_HISTORY;
-        const response: any = await GET(url);
-        if (response.status) {
-          setProducts(response.data);
-        } else {
-          setProducts([]);
-        }
-      } else {
-        setProducts([]);
-      }
-    } catch (err) {
-      console.log("No recommendations", err);
-      setProducts([]);
-    }
-  };
+  // const getRecommendations = async () => {
+  //   try {
+  //     if (session) {
+  //       const url = API.USER_HISTORY;
+  //       const response: any = await GET(url);
+  //       if (response.status) {
+  //         setProducts(response.data);
+  //       } else {
+  //         setProducts([]);
+  //       }
+  //     } else {
+  //       setProducts([]);
+  //     }
+  //   } catch (err) {
+  //     console.log("No recommendations", err);
+  //     setProducts([]);
+  //   }
+  // };
 
   const mergeLocalCartWithBackend = async (backendCart: any[]) => {
     try {
@@ -473,15 +474,33 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         }
       }
 
+      // Use German Standard API for cart operations
       for (const item of mergedCart) {
-        if (item.id) {
-          await PUT(API.CART + item.id, { quantity: item.quantity });
-        } else {
-          await POST(API.CART, {
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          });
+        // if (item.id) {
+        //   await PUT(API.CART + item.id, { quantity: item.quantity });
+        // } else {
+        //   await POST(API.CART, {
+        //     productId: item.productId,
+        //     quantity: item.quantity,
+        //     price: item.price,
+        //   });
+        try {
+          const cartRequest = {
+            transId: item.id || 0, // 0 for new cart item
+            date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+            customer: 1, // You may need to get this from session
+            warehouse: 1, // Default warehouse
+            product: item.productId,
+            qty: item.quantity,
+            rate: item.price || 0,
+            unit: 1, // Default unit
+            totalRate: (item.price || 0) * item.quantity,
+            be: 1 // Business Entity
+          };
+          
+          await germanStandardApi.upsertCart(cartRequest);
+        } catch (error) {
+          console.error("Error updating cart item:", error);
         }
       }
 
@@ -504,17 +523,42 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     try {
       setLoading(true);
       if (session) {
-        const cartItemsResponse: any = await GET(API.CART_GET_ALL);
-        if (cartItemsResponse.status) {
-          const backendCart = cartItemsResponse.data || [];
-          await mergeLocalCartWithBackend(backendCart);
-        } else {
+        // Use German Standard API for cart data
+        try {
+          const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+          if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+            // Transform German Standard cart data to match existing format
+            const transformedCart = cartSummary.transactions.map((item: any) => ({
+              id: item.TransId,
+              productId: item.productId || 1, // You may need to get this from transaction details
+              quantity: item.qty || 1,
+              price: item.rate || 0,
+              totalPrice: item.totalRate || 0,
+              // Add other required fields as needed
+            }));
+            await mergeLocalCartWithBackend(transformedCart);
+          } else {
+            await mergeLocalCartWithBackend([]);
+          }
+        } catch (error) {
+          console.error("Error fetching cart from German Standard API:", error);
           await mergeLocalCartWithBackend([]);
-          notification.warning({
-            message: "No cart data from server, merging local cart",
-          });
         }
       }
+
+      // if (session) {
+      //   const cartItemsResponse: any = await GET(API.CART_GET_ALL);
+      //   if (cartItemsResponse.status) {
+      //     const backendCart = cartItemsResponse.data || [];
+      //     await mergeLocalCartWithBackend(backendCart);
+      //   } else {
+      //     await mergeLocalCartWithBackend([]);
+      //     notification.warning({
+      //       message: "No cart data from server, merging local cart",
+      //     });
+      //   }
+      // }
+
     } catch (err) {
       notification.error({
         message: "Something went wrong. Showing cached cart data.",
@@ -527,24 +571,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     }
   };
 
-  const clear = async () => {
-    try {
-      if (session) {
-        const response: any = await DELETE(API.CART_CLEAR_ALL);
-        if (response?.status) {
-          notification.success({ message: response?.message });
-          dispatch(clearCart());
-        } else {
-          notification.error({ message: response?.message });
-        }
-      } else {
-        dispatch(clearLocalCart());
-        notification.success({ message: "Cart cleared successfully" });
-      }
-    } catch (err) {
-      notification.error({ message: "Something went wrong." });
-    }
-  };
+  // const clear = async () => {
+  //   try {
+  //     if (session) {
+  //       const response: any = await DELETE(API.CART_CLEAR_ALL);
+  //       if (response?.status) {
+  //         notification.success({ message: response?.message });
+  //         dispatch(clearCart());
+  //       } else {
+  //         notification.error({ message: response?.message });
+  //       }
+  //     } else {
+  //       dispatch(clearLocalCart());
+  //       notification.success({ message: "Cart cleared successfully" });
+  //     }
+  //   } catch (err) {
+  //     notification.error({ message: "Something went wrong." });
+  //   }
+  // };
 
   // Fixed updateQuantity function
   const updateQuantity = async (action: "add" | "reduce", item: any) => {
@@ -585,20 +629,45 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         // Update Redux store immediately
         dispatch(storeCart(updatedItems));
 
-        // Make API call
-        const cartResponse: any = await PUT(
-          API.CART + item?.id + `?action=${action}`,
-          {}
-        );
-        
-        if (cartResponse.status) {
+        // Make API call using German Standard API
+        try {
+          const cartRequest = {
+            transId: item.id || 0,
+            date: new Date().toISOString().split('T')[0],
+            customer: 1, // You may need to get this from session
+            warehouse: 1,
+            product: item.productId,
+            qty: newQuantity,
+            rate: item.price || 0,
+            unit: 1,
+            totalRate: (item.price || 0) * newQuantity,
+            be: 1
+          };
+          
+          await germanStandardApi.upsertCart(cartRequest);
           // Refresh data from server to ensure consistency
           await loadData();
-        } else {
+        } catch (apiError) {
           // Revert optimistic update if API call failed
           dispatch(storeCart(Cart.items));
-          notification.error({ message: cartResponse?.message ?? "Failed to update quantity" });
+          notification.error({ message: "Failed to update quantity" });
         }
+
+        //  // Make API call
+        //  const cartResponse: any = await PUT(
+        //   API.CART + item?.id + `?action=${action}`,
+        //   {}
+        // );
+        
+        // if (cartResponse.status) {
+        //   // Refresh data from server to ensure consistency
+        //   await loadData();
+        // } else {
+        //   // Revert optimistic update if API call failed
+        //   dispatch(storeCart(Cart.items));
+        //   notification.error({ message: cartResponse?.message ?? "Failed to update quantity" });
+        // }
+
       } else {
         // For guest users - Redux actions only
         const payload = {
@@ -639,20 +708,20 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         const updatedItems = Cart.items.filter((cartItem: any) => cartItem.id !== id);
         dispatch(storeCart(updatedItems));
 
-        const url = API.CART + id;
-        const cartItems: any = await DELETE(url);
+        // const url = API.CART + id;
+        // const cartItems: any = await DELETE(url);
         
-        if (cartItems.status) {
-          notification.success({
-            message: "You have removed Product from cart",
-          });
-          // Refresh data to ensure consistency
-          await loadData();
-        } else {
-          // Revert optimistic update if API call failed
-          await loadData();
-          notification.error({ message: "Failed to remove item" });
-        }
+        // if (cartItems.status) {
+        //   notification.success({
+        //     message: "You have removed Product from cart",
+        //   });
+        //   // Refresh data to ensure consistency
+        //   await loadData();
+        // } else {
+        //   // Revert optimistic update if API call failed
+        //   await loadData();
+        //   notification.error({ message: "Failed to remove item" });
+        // }
       } else {
         dispatch(
           removeFromLocalCart({
@@ -715,12 +784,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
       open={showDrawer}
       width={340}
       extra={""}
-      bodyStyle={{
-        padding: 0,
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        overflow: "hidden",
+      styles={{
+        body: {
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          overflow: "hidden",
+        }
       }}
     >
       {cartItems?.length ? (

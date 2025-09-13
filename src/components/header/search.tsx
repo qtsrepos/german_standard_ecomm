@@ -106,11 +106,10 @@ function SearchBar() {
                 <Input
                   size="large"
                   placeholder="Search for products"
-                  defaultValue={""}
                   onFocus={handleFocus}
                   onChange={(e) => form.setFieldsValue({ search: e.target.value })}
                   value={form.getFieldValue("search")}
-                  bordered={false}
+                  variant="borderless"
                   suffix={
                     form.getFieldValue("search") ? (
                       <IoClose
@@ -153,7 +152,7 @@ function SearchBar() {
                   options={categories}
                   onChange={handleCategoryChange}
                   size="large"
-                  bordered={false}
+                  variant="borderless"
                   style={{
                     backgroundColor: "#f5f5f5",
                     width: "100%",
@@ -165,7 +164,7 @@ function SearchBar() {
                   placeholder="Select Category"
                   // onChange={handleChange}
                   size="large"
-                  bordered={false}
+                  variant="borderless"
                   style={{
                     backgroundColor: "#f5f5f5",
                     width: "100%",
@@ -178,12 +177,12 @@ function SearchBar() {
                     <OptGroup key={cat.name} label={cat.name}>
                       {cat.sub_categories.length > 0 ? (
                         cat.sub_categories.map((sub: any) => (
-                          <Option value={sub.name}>
+                          <Option key={sub._id || sub.name} value={sub.name}>
                             {sub.name}
                           </Option>
                         ))
                       ) : (
-                        <Option value={cat.name}>{cat.name}</Option>
+                        <Option key={cat._id || cat.name} value={cat.name}>{cat.name}</Option>
                       )}
                     </OptGroup>
                   ))}

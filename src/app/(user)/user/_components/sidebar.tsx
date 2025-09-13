@@ -36,7 +36,7 @@ function Sidebar() {
         cancelText: "No",
         onOk: () => {
           clearReduxData(dispatch);
-          signOut();
+          signOut({ callbackUrl: "/login" });
         },
       });
     } else {

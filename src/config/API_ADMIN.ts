@@ -1,96 +1,32 @@
 const API_ADMIN = {
-  BANNERS_LIST: "banner/all/", // GET
-  BANNER_ADD: "banner/", // POST
-  BANNER_EDIT: "banner/", // PUT
-  BANNER_DELETE: "banner/", // DELETE
-  BANNER_EXPORT: "", // GET
-  BANNER_IMPORT: "", // POST
-  BANNER_POSITION_UPDATE: "banner/position/", //update the banner position //put
+  // German Standard API Base URL
+  GERMAN_STANDARD_BASE: "http://103.120.178.195/Sang.GermanStandard.API/",
 
-  CATEGORY_LIST: "category/all", // GET all
-  CATEGORY_UPDATE_POSITION: "category/position/", //put. update the category position
+  // Login APIs (from Swagger)
+  GERMAN_STANDARD_LOGIN: "http://103.120.178.195/Sang.GermanStandard.API/login/login",
+  GERMAN_STANDARD_REFRESH_TOKEN: "http://103.120.178.195/Sang.GermanStandard.API/login/regeneratetokens",
+  GERMAN_STANDARD_GET_COMPANY: "http://103.120.178.195/Sang.GermanStandard.API/login/getcompany",
 
-  SUBCATEGORY_LIST: "subCategory/all", // GET all
-  SUB_CATEGORY_UPDATE_POSITION: "subCategory/position/", //UPDATE SUBACTEGORY POSITION PUT
+  // Tag APIs (from Swagger)
+  GERMAN_STANDARD_TAG_LIST: "http://103.120.178.195/Sang.GermanStandard.API/tag/gettaglist",
+  GERMAN_STANDARD_STOCK: "http://103.120.178.195/Sang.GermanStandard.API/tag/getstock",
+  GERMAN_STANDARD_MASTER_DETAILS: "http://103.120.178.195/Sang.GermanStandard.API/tag/getmasterdetails",
+  GERMAN_STANDARD_PRODUCT_RATE: "http://103.120.178.195/Sang.GermanStandard.API/tag/getproductrate",
+  GERMAN_STANDARD_PRODUCTS: "http://103.120.178.195/Sang.GermanStandard.API/tag/getproducts",
+  GERMAN_STANDARD_CATEGORIES: "http://103.120.178.195/Sang.GermanStandard.API/tag/getsubcategorybycategory",
+  GERMAN_STANDARD_UPSERT_ADDRESS: "http://103.120.178.195/Sang.GermanStandard.API/tag/upsertaddress",
+  GERMAN_STANDARD_GET_ADDRESS_DETAILS: "http://103.120.178.195/Sang.GermanStandard.API/tag/getaddressdetails",
 
-  PRODUCTS_BYSTORE: "products/bystore", // GET all for a store
-  PRODUCTS_GETONE_STORE: "products/seller/",
-  PRODUCTS_UPDATE: "products/update/", //update
-  PRODUCTS_DELETE_IMAGE: "products/delete_image/", //delete
-  PRODUCTS_UPDATE_COVERIMAGE: "products/update_cover_img/", //delete
-  PROUCTS_IMAGE_UPDATE: "products/update_image/", //update images
-  PRODUCT_UPDATE_VARIANTS: "products/update/variant/",
-  PRODUCT_VARIANT_ADD: "productvariant/add_variants", //add variants[]
-  PRODUCT_VARIANT_DELETE: "productvariant/delete/", //delete variant
+  // User APIs (from Swagger)
+  GERMAN_STANDARD_GET_SCREENS: "http://103.120.178.195/Sang.GermanStandard.API/user/getscreens",
+  GERMAN_STANDARD_GET_USER_ACTION: "http://103.120.178.195/Sang.GermanStandard.API/user/getuseraction",
 
-  ORDER_GET_BYSTORE: "order/store/",
-  ORDER_DETAILS: "order/details/", //GET to get order details for seller and admin
-  ORDER_STATUS_UPDATE: "order/update_status/", //put
-  ORDER_GETONE_SELLER: "order/get_one/seller/", //get details of an order for seller.
-  COMPLETE_PAYMENT: "order/update_payment/", //get update payment for seller only
-  ORDER_BY_USER: "order/user/", //to get all orders for a user only for admin
-
-  ENQUIRY_GET: "Enquiry/get",
-  ENQUIRY_DELETE: "Enquiry/delete/",
-
-  APP_USERS: "user", //
-  USER_DETAILS: "user/details/", //to get all user info
-  ADDRESS_GET: "address/all/",
-
-  CORPORATE_STORE_GETALL: "coorporate_store/pgn/", //get
-  CORPORATE_STORE_REQUEST_DOCUMENT: "coorporate_store/send_mail", //post
-  CORPORATE_STORE_UPDATE_STATUS: "coorporate_store/status/", //put
-  STORE_DEACTIVATE: "coorporate_store/deactivate/", 
-
-  INVOICE_GET_ALL: "invoice/all", // get all invoices
-
-  INDIVIDUAL_STORE_GETALL: "individual_seller/pgn", //get
-  INDIVIDUAL_SELLER_DETAILS: "individual_seller/", //getbyid
-
-  ADMIN_DASHBOARD: "coorporate_store/dashboard/admin", //getdasboard info for only admin
-
-  STORE_INFO: "coorporate_store/details/", //get store details only for store owners
-  STORE_UPDATE: "coorporate_store/update", // PUT
-  STORE_INFO_ADMIN: "coorporate_store/sellerdetails/",
-
-  BUSINESS_TYPE: "businesstype/", //POST,PUT,DELETE
-
-  CATEGORY: "category/", //delete,put,post
-
-  SUBCATEGORY: "subCategory/",
-
-  OFFERS: "offers/",
-  OFFERS_GETALL: "offers/auth",
-
-  //SETTINGS,
-  SETTINGS: "settings/",
-
-  //STATES API
-  STATES: "states/", //POST,PUT,DELETE
-
-  //DELIVERY_CHARGE
-  DELIVERY_CHARGE: "deliverycharge/", //GET
-  DISTANCE_CHARGE: "distancecharge/", //GET
-  DELIVERY_CHARGE_UPSERT: "deliverycharge/upsert", //POST :- if id exist update exist record else create new record and delete non-existing ids
-  DISTANCE_CHARGE_UPSERT: "distancecharge/upsert", //POST :- if id exist update exist record else create new record and delete non-existing ids
-
-  DASHBOARD_COUNTS: "dashboard/count",
-  DASHBOARD_STATISTICS: "dashboard/statistics",
-  DASHBOARD_ORDER_STATISTICS: "dashboard/order_statistics",
-
-  SETTLEMENT_HISTORY: "settlements/history/", //to get settlement history of a store    get
-  SETTLEMENT_SUMMARY: "settlements/summary/", //to get settlement history of a store    get
-  SETTLEMENT_CREATE: "settlements/create", //only for admin
-
-  AUTO_COMPLETE: "google-proxy/autocomplete", //GET
-  GOOGLE_PLACEPICKER: "google-proxy/placepicker",//GET
-
-  SIGNUP: "auth/signup", //POST
-  USER_CHECK_PHONE: "auth/checkphone/", //check phone number exist for signup
-  USER_CHECK_EMAIL: "auth/checkEmail/", //check email
-  USER_FORGOT_PASSWORD: "auth/forgot-password", //post forgot password request
-
-
-
+  // GsgTransaction APIs (from Swagger)
+  GERMAN_STANDARD_TRANSACTION_SUMMARY: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/gettransactionsummary",
+  GERMAN_STANDARD_TRANSACTION_DETAILS: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/gettransactiondetails",
+  GERMAN_STANDARD_DELETE_TRANSACTION: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/deletetransaction",
+  GERMAN_STANDARD_UPSERT_ORDER: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/upsertorder",
+  GERMAN_STANDARD_UPSERT_WISHLIST: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/upsertwishlist",
+  GERMAN_STANDARD_UPSERT_CART: "http://103.120.178.195/Sang.GermanStandard.API/gsgtransaction/upsertcart",
 } as const;
 export default API_ADMIN;

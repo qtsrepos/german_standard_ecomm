@@ -7,11 +7,10 @@ import { Button, notification } from "antd";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiOutlineMinus, AiOutlinePlus } from "react-icons/ai";
-import { FaHeart } from "react-icons/fa6";
+// import { FaHeart } from "react-icons/fa6";
 import { useDispatch, useSelector } from "react-redux";
-import API from "../../../../config/API";
 import { storeCheckout } from "../../../../redux/slice/checkoutSlice";
-import { GET, POST } from "../../../../util/apicall";
+import { germanStandardApi } from "@/services/germanStandardApi";
 import { useSession } from "next-auth/react";
 import { decrement, increment } from "@/redux/slice/favouriteSlice";
 import { addToLocalCart } from "@/redux/slice/localcartSlice";
@@ -34,13 +33,12 @@ function Description(props: Props) {
 
   const checkWishlistStatus = async () => {
     try {
-      const res = await GET(API.WISHLIST_GETALL);
-      const isInWishlist = res?.data?.some(
+      // Use German Standard API to check wishlist status
+      const wishlistSummary = await germanStandardApi.getWishlistSummary(1, true, 1, 100);
+      const isInWishlist = wishlistSummary.transactions?.some(
         (item: any) => {
-          return item?.pid == props?.data?.pid;
+          return item?.productId == props?.data?.pid;
         }
-        // (!props.currentVariant?.id
-        //   || item.variantId === props.currentVariant.id)
       );
 
       setFavourited(!!isInWishlist);
@@ -49,6 +47,24 @@ function Description(props: Props) {
       setFavourited(false);
     }
   };
+
+  // const checkWishlistStatus = async () => {
+  //   try {
+  //     const res = await GET(API.WISHLIST_GETALL);
+  //     const isInWishlist = res?.data?.some(
+  //       (item: any) => {
+  //         return item?.pid == props?.data?.pid;
+  //       }
+  //       // (!props.currentVariant?.id
+  //       //   || item.variantId === props.currentVariant.id)
+  //     );
+
+  //     setFavourited(!!isInWishlist);
+  //   } catch (err) {
+  //     console.log("err", err);
+  //     setFavourited(false);
+  //   }
+  // };
 
   const availableQuantity =
     props?.currentVariant?.units ?? props?.data?.unit ?? 0;
@@ -159,33 +175,87 @@ function Description(props: Props) {
       notification.error({ message: `Selected Quantity is Not Available.` });
       return;
     }
-    const obj = {
-      productId: props?.data?.pid,
-      quantity: quantity,
-      variantId: props?.currentVariant?.id ?? null,
-    };
-    const url = API.CART;
+    
     try {
-      const newCart: any = await POST(url, obj);
-      if (newCart.status) {
-        Notifications.success({ message: newCart?.message });
-        // setTimeout(() => {
-        //   router.push("/cart");
-        // }, 1000);
-      } else {
-        Notifications.error({ message: newCart?.message });
+      // Use German Standard API to add to cart
+      const cartRequest = {
+        transId: 0, // 0 for new cart item
+        date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+        customer: 1, // You may need to get this from session
+        warehouse: 1, // Default warehouse
+        product: props?.data?.pid,
+        qty: quantity,
+        rate: props?.currentVariant?.price ?? props?.data?.retail_rate ?? 0,
+        unit: 1, // Default unit
+        totalRate: (props?.currentVariant?.price ?? props?.data?.retail_rate ?? 0) * quantity,
+        be: 1 // Business Entity
+      };
+
+      const response = await germanStandardApi.upsertCart(cartRequest);
+      Notifications.success({ message: "Item added to cart successfully" });
+      
+      // Refresh cart data
+      try {
+        const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+        if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+          // Transform German Standard cart data to match existing format
+          const transformedCart:any = cartSummary.transactions.map((item: any) => ({
+            id: item.TransId,
+            productId: item.productId || 1,
+            quantity: item.qty || 1,
+            price: item.rate || 0,
+            totalPrice: item.totalRate || 0,
+            // Add other required fields as needed
+          }));
+          dispatch(storeCart(transformedCart));
+        }
+      } catch (err) {
+        console.error("Error refreshing cart:", err);
       }
     } catch (err: any) {
+      console.error("Error adding to cart:", err);
       Notifications.error({ message: "Something went wrong!" });
     }
-    try {
-      const url = API.CART_GET_ALL;
-      const cartItems: any = await GET(url);
-      if (cartItems.status) {
-        dispatch(storeCart(cartItems.data));
-      }
-    } catch (err) {}
   };
+
+  // const addToCart = async (item: any, quantity: number) => {
+  //   if (props?.data?.status != true) {
+  //     notification.error({ message: `Product is Temporarily not Available` });
+  //     return;
+  //   } else if (props?.data?.unit == 0) {
+  //     notification.error({ message: `Product is Out of Stock!!` });
+  //     return;
+  //   } else if (quantity > props?.data?.unit) {
+  //     notification.error({ message: `Selected Quantity is Not Available.` });
+  //     return;
+  //   }
+  //   const obj = {
+  //     productId: props?.data?.pid,
+  //     quantity: quantity,
+  //     variantId: props?.currentVariant?.id ?? null,
+  //   };
+  //   const url = API.CART;
+  //   try {
+  //     const newCart: any = await POST(url, obj);
+  //     if (newCart.status) {
+  //       Notifications.success({ message: newCart?.message });
+  //       // setTimeout(() => {
+  //       //   router.push("/cart");
+  //       // }, 1000);
+  //     } else {
+  //       Notifications.error({ message: newCart?.message });
+  //     }
+  //   } catch (err: any) {
+  //     Notifications.error({ message: "Something went wrong!" });
+  //   }
+  //   try {
+  //     const url = API.CART_GET_ALL;
+  //     const cartItems: any = await GET(url);
+  //     if (cartItems.status) {
+  //       dispatch(storeCart(cartItems.data));
+  //     }
+  //   } catch (err) {}
+  // };
 
   const handleAddToLocalCart = () => {
     if (props?.data?.status != true) {
@@ -225,30 +295,30 @@ function Description(props: Props) {
   };
 
   const AddWishlist = async () => {
-    const obj = {
-      productId: props?.data?.pid,
-      variantId: props?.currentVariant?.id ?? null,
-    };
-    const url = API.WISHLIST;
-
     try {
-      const response = await POST(url, obj);
-      if (response?.status) {
-        // Update state immediately for better UX
-        const newFavoritedState = !favourited;
-        setFavourited(newFavoritedState);
+      const wishlistRequest = {
+        transId: 0, // 0 for new wishlist item
+        product: props?.data?.pid,
+        quantity: 1,
+        customer: 1, // You may need to get this from session
+        remarks: "",
+        be: 1 // Business Entity
+      };
 
-        const message = newFavoritedState
-          ? "Successfully added to Wishlist"
-          : "Item removed from wishlist.";
-        Notifications.success({ message });
-        if (newFavoritedState) {
-          dispatch(increment());
-        } else {
-          dispatch(decrement());
-        }
+      const response = await germanStandardApi.upsertWishlist(wishlistRequest);
+      
+      // Update state immediately for better UX
+      const newFavoritedState = !favourited;
+      setFavourited(newFavoritedState);
+
+      const message = newFavoritedState
+        ? "Successfully added to Wishlist"
+        : "Item removed from wishlist.";
+      Notifications.success({ message });
+      if (newFavoritedState) {
+        dispatch(increment());
       } else {
-        Notifications.error({ message: response?.message });
+        dispatch(decrement());
       }
     } catch (error) {
       console.error("Error toggling wishlist:", error);
@@ -257,6 +327,40 @@ function Description(props: Props) {
       });
     }
   };
+
+  // const AddWishlist = async () => {
+  //   const obj = {
+  //     productId: props?.data?.pid,
+  //     variantId: props?.currentVariant?.id ?? null,
+  //   };
+  //   const url = API.WISHLIST;
+
+  //   try {
+  //     const response = await POST(url, obj);
+  //     if (response?.status) {
+  //       // Update state immediately for better UX
+  //       const newFavoritedState = !favourited;
+  //       setFavourited(newFavoritedState);
+
+  //       const message = newFavoritedState
+  //         ? "Successfully added to Wishlist"
+  //         : "Item removed from wishlist.";
+  //       Notifications.success({ message });
+  //       if (newFavoritedState) {
+  //         dispatch(increment());
+  //       } else {
+  //         dispatch(decrement());
+  //       }
+  //     } else {
+  //       Notifications.error({ message: response?.message });
+  //     }
+  //   } catch (error) {
+  //     console.error("Error toggling wishlist:", error);
+  //     Notifications.error({
+  //       message: "Something went wrong. Please try again later.",
+  //     });
+  //   }
+  // };
 
   return (
     <div>

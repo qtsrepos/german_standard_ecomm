@@ -13,6 +13,9 @@ import { checkCustomRoutes } from "next/dist/lib/load-custom-routes";
 import { CheckoutSlice } from "@/redux/slice/checkoutSlice";
 import { FavoritesSlice } from "../slice/favouriteSlice";
 import { LocalCartSlice } from "../slice/localcartSlice";
+import { WishlistSlice } from "../slice/wishlistSlice";
+import { OrdersSlice } from "../slice/ordersSlice";
+import { ProductsSlice } from "../slice/productsSlice";
 
 
 const rootReducer = combineSlices(
@@ -24,7 +27,10 @@ const rootReducer = combineSlices(
   AuthSlice,
   CheckoutSlice,
   FavoritesSlice,
-  LocalCartSlice
+  LocalCartSlice,
+  WishlistSlice,
+  OrdersSlice,
+  ProductsSlice
  
 
 );
@@ -32,7 +38,7 @@ const rootReducer = combineSlices(
 const persistConfig = {
   key: "nextme-nextjs",
   storage,
-  whitelist: ["Cart", "Category", "Settings", "Location", "Language", "Auth","Checkout","LocalCart"],
+  whitelist: ["Cart", "Category", "Settings", "Location", "Language", "Auth","Checkout","LocalCart","Wishlist","Orders","Products"],
 };
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 

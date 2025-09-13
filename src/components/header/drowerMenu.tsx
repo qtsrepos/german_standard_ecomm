@@ -147,8 +147,10 @@ const CustomDrawerMenu = ({ open, setOpen }: Props) => {
       open={open}
       onClose={() => setOpen(false)}
       width={300}
-      bodyStyle={{ padding: 0 }}
-      headerStyle={{ padding: 0 }}
+      styles={{
+        body: { padding: 0 },
+        header: { padding: 0 }
+      }}
     >
       <div className="drawer-specific-tabs">
         <Tabs defaultActiveKey="1" centered className="custom-tabs">

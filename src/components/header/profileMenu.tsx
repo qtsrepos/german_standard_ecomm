@@ -39,7 +39,7 @@ const ProfileMenu = (props: any) => {
         cancelText: "No",
         onOk: () => {
           clearReduxData(dispatch);
-          signOut();
+          signOut({ callbackUrl: "/login" });
         },
       });
     } else {

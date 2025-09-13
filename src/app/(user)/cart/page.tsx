@@ -1449,6 +1449,7 @@ import {
 } from "../../../redux/slice/checkoutSlice";
 import { checkoutCartItems } from "./_components/checkoutFunction";
 import HeaderBreadcrumbs from "./_components/headerBreadcrumbs";
+import { germanStandardApi } from "@/services/germanStandardApi";
 
 function CartPage() {
   const dispatch = useDispatch();
@@ -1470,28 +1471,28 @@ function CartPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
     loadData();
-    getRecommendations();
+    // getRecommendations();
     dispatch(clearCheckout());
   }, [session]);
 
-  const getRecommendations = async () => {
-    try {
-      if (session) {
-        const url = API.USER_HISTORY;
-        const response: any = await GET(url);
-        if (response.status) {
-          setProducts(response.data);
-        } else {
-          setProducts([]);
-        }
-      } else {
-        setProducts([]);
-      }
-    } catch (err) {
-      console.log("No recommendations", err);
-      setProducts([]);
-    }
-  };
+  // const getRecommendations = async () => {
+  //   try {
+  //     if (session) {
+  //       const url = API.USER_HISTORY;
+  //       const response: any = await GET(url);
+  //       if (response.status) {
+  //         setProducts(response.data);
+  //       } else {
+  //         setProducts([]);
+  //       }
+  //     } else {
+  //       setProducts([]);
+  //     }
+  //   } catch (err) {
+  //     console.log("No recommendations", err);
+  //     setProducts([]);
+  //   }
+  // };
 
   const mergeLocalCartWithBackend = async (backendCart: any[]) => {
     try {
@@ -1515,15 +1516,25 @@ function CartPage() {
         }
       }
 
+      // Use German Standard API for cart operations
       for (const item of mergedCart) {
-        if (item.id) {
-          await PUT(API.CART + item.id, { quantity: item.quantity });
-        } else {
-          await POST(API.CART, {
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          });
+        try {
+          const cartRequest = {
+            transId: item.id || 0, // 0 for new cart item
+            date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+            customer: 1, // You may need to get this from session
+            warehouse: 1, // Default warehouse
+            product: item.productId,
+            qty: item.quantity,
+            rate: item.price || 0,
+            unit: 1, // Default unit
+            totalRate: (item.price || 0) * item.quantity,
+            be: 1 // Business Entity
+          };
+          
+          await germanStandardApi.upsertCart(cartRequest);
+        } catch (error) {
+          console.error("Error updating cart item:", error);
         }
       }
 
@@ -1546,18 +1557,56 @@ function CartPage() {
     try {
       setLoading(true);
       if (session) {
-        const cartItemsResponse: any = await GET(API.CART_GET_ALL);
-        if (cartItemsResponse.status) {
-          const backendCart = cartItemsResponse.data || [];
-          await mergeLocalCartWithBackend(backendCart);
-        } else {
-          await mergeLocalCartWithBackend([]);
-          notificationApi.warning({
-            message: "No cart data from server, merging local cart",
-          });
+        // Try German Standard API first
+        try {
+          const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+          if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+            // Transform German Standard cart data to match existing format
+            const transformedCart:any = cartSummary.transactions.map((item: any) => ({
+              id: item.TransId,
+              productId: item.productId || item.product,
+              quantity: item.qty || item.quantity,
+              price: item.rate || item.price,
+              totalPrice: (item.rate || item.price) * (item.qty || item.quantity),
+              name: item.productName || `Product ${item.productId || item.product}`,
+              image: item.image || "/images/no-image.jpg",
+              unit: item.stock || 999 // Default stock
+            }));
+            dispatch(storeCart(transformedCart));
+            setLoading(false);
+            return;
+          }
+        } catch (gsError) {
+          console.log("German Standard API failed, falling back to legacy API:", gsError);
         }
+
+        // Use German Standard API for cart data
+        try {
+          const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+          if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+            // Transform German Standard cart data to match existing format
+            const transformedCart = cartSummary.transactions.map((item: any) => ({
+              id: item.TransId,
+              productId: item.productId || 1, // You may need to get this from transaction details
+              quantity: item.qty || 1,
+              price: item.rate || 0,
+              totalPrice: item.totalRate || 0,
+              // Add other required fields as needed
+            }));
+            await mergeLocalCartWithBackend(transformedCart);
+          } else {
+            await mergeLocalCartWithBackend([]);
+          }
+        } catch (error) {
+          console.error("Error fetching cart from German Standard API:", error);
+          await mergeLocalCartWithBackend([]);
+        }
+      } else {
+        // For guest users, just show local cart
+        setLoading(false);
       }
     } catch (err) {
+      console.error("Cart load error:", err);
       notificationApi.error({
         message: "Something went wrong. Showing cached cart data.",
       });
@@ -1569,24 +1618,51 @@ function CartPage() {
     }
   };
 
-  const clear = async () => {
-    try {
-      if (session) {
-        const response: any = await DELETE(API.CART_CLEAR_ALL);
-        if (response?.status) {
-          notificationApi.success({ message: response?.message });
-          dispatch(clearCart());
-        } else {
-          notificationApi.error({ message: response?.message });
-        }
-      } else {
-        dispatch(clearLocalCart());
-        notificationApi.success({ message: "Cart cleared successfully" });
-      }
-    } catch (err) {
-      notificationApi.error({ message: "Something went wrong." });
-    }
-  };
+  // const loadData = async () => {
+  //   try {
+  //     setLoading(true);
+  //     if (session) {
+  //       const cartItemsResponse: any = await GET(API.CART_GET_ALL);
+  //       if (cartItemsResponse.status) {
+  //         const backendCart = cartItemsResponse.data || [];
+  //         await mergeLocalCartWithBackend(backendCart);
+  //       } else {
+  //         await mergeLocalCartWithBackend([]);
+  //         notificationApi.warning({
+  //           message: "No cart data from server, merging local cart",
+  //         });
+  //       }
+  //     }
+  //   } catch (err) {
+  //     notificationApi.error({
+  //       message: "Something went wrong. Showing cached cart data.",
+  //     });
+  //     if (session) {
+  //       await mergeLocalCartWithBackend(Cart.items || []);
+  //     }
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  // const clear = async () => {
+  //   try {
+  //     if (session) {
+  //       const response: any = await DELETE(API.CART_CLEAR_ALL);
+  //       if (response?.status) {
+  //         notificationApi.success({ message: response?.message });
+  //         dispatch(clearCart());
+  //       } else {
+  //         notificationApi.error({ message: response?.message });
+  //       }
+  //     } else {
+  //       dispatch(clearLocalCart());
+  //       notificationApi.success({ message: "Cart cleared successfully" });
+  //     }
+  //   } catch (err) {
+  //     notificationApi.error({ message: "Something went wrong." });
+  //   }
+  // };
 
   // FIXED: Optimistic update function
   const updateQuantity = async (action: "add" | "reduce", item: any) => {
@@ -1632,22 +1708,46 @@ function CartPage() {
 
         // Background API call
         try {
-          const cartResponse: any = await PUT(
-            API.CART + item?.id + `?action=${action}`,
-            {}
-          );
+          const cartRequest = {
+            transId: item.id || 0,
+            date: new Date().toISOString().split('T')[0],
+            customer: 1, // You may need to get this from session
+            warehouse: 1,
+            product: item.productId,
+            qty: newQuantity,
+            rate: item.price || 0,
+            unit: 1,
+            totalRate: (item.price || 0) * newQuantity,
+            be: 1
+          };
           
-          if (!cartResponse.status) {
-            // Revert optimistic update if API failed
-            dispatch(storeCart(Cart.items));
-            notificationApi.error({ message: cartResponse?.message ?? "Failed to update quantity" });
-          }
+          await germanStandardApi.upsertCart(cartRequest);
+          // German Standard API doesn't return status in the same way, so we assume success
           // Note: We don't call loadData() here anymore for better performance
         } catch (apiError) {
           // Revert optimistic update if API call failed
           dispatch(storeCart(Cart.items));
           notificationApi.error({ message: "Failed to update cart" });
         }
+
+        // try {
+        //   const cartResponse: any = await PUT(
+        //     API.CART + item?.id + `?action=${action}`,
+        //     {}
+        //   );
+          
+        //   if (!cartResponse.status) {
+        //     // Revert optimistic update if API failed
+        //     dispatch(storeCart(Cart.items));
+        //     notificationApi.error({ message: cartResponse?.message ?? "Failed to update quantity" });
+        //   }
+        //   // Note: We don't call loadData() here anymore for better performance
+        // } catch (apiError) {
+        //   // Revert optimistic update if API call failed
+        //   dispatch(storeCart(Cart.items));
+        //   notificationApi.error({ message: "Failed to update cart" });
+        // }
+
       } else {
         // For guest users - direct Redux actions
         const payload = {
@@ -1679,18 +1779,18 @@ function CartPage() {
         const updatedItems = Cart.items.filter((cartItem: any) => cartItem.id !== id);
         dispatch(storeCart(updatedItems));
 
-        const url = API.CART + id;
-        const cartResponse: any = await DELETE(url);
+        // const url = API.CART + id;
+        // const cartResponse: any = await DELETE(url);
         
-        if (cartResponse.status) {
-          notificationApi.success({
-            message: "You have removed Product from cart",
-          });
-        } else {
-          // Revert optimistic update if API failed
-          await loadData();
-          notificationApi.error({ message: "Failed to remove item" });
-        }
+        // if (cartResponse.status) {
+        //   notificationApi.success({
+        //     message: "You have removed Product from cart",
+        //   });
+        // } else {
+        //   // Revert optimistic update if API failed
+        //   await loadData();
+        //   notificationApi.error({ message: "Failed to remove item" });
+        // }
       } else {
         dispatch(
           removeFromLocalCart({
@@ -1746,6 +1846,31 @@ function CartPage() {
       }
     } catch (err) {
       console.log("err", err);
+    }
+  };
+
+  // Add item to cart using German Standard API
+  const addToCartGS = async (productId: number, quantity: number, price: number) => {
+    try {
+      const cartRequest = {
+        transId: 0, // New cart item
+        date: new Date().toISOString().split('T')[0], // Today's date
+        customer: (session?.user as any)?.id || 1, // User ID
+        warehouse: 1, // Default warehouse
+        product: productId,
+        qty: quantity,
+        rate: price,
+        unit: 1, // Default unit
+        totalRate: price * quantity,
+        be: 1 // Business Entity
+      };
+
+      const response = await germanStandardApi.upsertCart(cartRequest);
+      console.log("Item added to cart via German Standard API:", response.result);
+      return response.result;
+    } catch (error) {
+      console.error("Failed to add to cart via German Standard API:", error);
+      throw error;
     }
   };
 

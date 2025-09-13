@@ -4,15 +4,28 @@ import { message } from "antd";
 import { GET } from "@/util/apicall";
 import API from "@/config/API_ADMIN";
 
-export default function useOrderNotification({ onNewOrder }:any = {}) {
+interface Order {
+  id: string;
+  [key: string]: any;
+}
+
+interface ExtendedAudioElement extends HTMLAudioElement {
+  onStopCallback?: () => void;
+}
+
+interface UseOrderNotificationProps {
+  onNewOrder?: (order: Order) => void;
+}
+
+export default function useOrderNotification({ onNewOrder }: UseOrderNotificationProps = {}) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [newOrder, setNewOrder] = useState<any>(null);
+  const [newOrder, setNewOrder] = useState<Order | null>(null);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   
   // Audio refs
   const isAudioPlaying = useRef<boolean>(false);
   const playPromiseRef = useRef<Promise<void> | null>(null);
-  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const activeAudioRef = useRef<ExtendedAudioElement | null>(null);
   const shouldStopAudio = useRef<boolean>(false);
   
   // Explicitly handle play with promise tracking
@@ -79,7 +92,7 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
       return;
     }
     
-    const audio = new Audio("/sounds/notification.mp3");
+    const audio = new Audio("/sounds/notification.mp3") as ExtendedAudioElement;
     audio.loop = true;
     audio.volume = 1.0;
     activeAudioRef.current = audio;
@@ -98,7 +111,6 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
       audio.removeEventListener('ended', handleEnded);
     };
     
-    // @ts-ignore - custom property
     audio.onStopCallback = onStopCallback;
   };
   
@@ -108,9 +120,7 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
     shouldStopAudio.current = true;
     
     if (activeAudioRef.current) {
-      // @ts-ignore - custom property
       if (activeAudioRef.current.onStopCallback) {
-        // @ts-ignore - custom property
         activeAudioRef.current.onStopCallback();
       }
       
@@ -132,7 +142,8 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
       await safePlayAudio(testAudio);
       message.success("Audio test successful! If you don't hear anything, check your system volume.");
     } catch (error) {
-      message.error(`Audio test failed: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      message.error(`Audio test failed: ${errorMessage}`);
       console.error("Test audio error:", error);
     }
   };
@@ -146,10 +157,8 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
   useEffect(() => {
     const checkNewOrders = async () => {
       try {
-        const latestOrders = await GET(API.ORDER_GET_BYSTORE, {
-          page: 1,
-          take: 1, // Only fetch the latest order
-        });
+        // Order APIs not available in Swagger - functionality disabled
+        const latestOrders: { data: Order[] } = { data: [] };
 
         if (
           latestOrders?.data &&
@@ -191,10 +200,8 @@ export default function useOrderNotification({ onNewOrder }:any = {}) {
 
     if (!lastOrderId) {
       // Initial fetch to get the latest order ID
-      GET(API.ORDER_GET_BYSTORE, {
-        page: 1,
-        take: 1,
-      }).then(result => {
+      // Order APIs not available in Swagger - functionality disabled
+      Promise.resolve({ data: [] as Order[] }).then(result => {
         if (
           result?.data &&
           Array.isArray(result.data) &&

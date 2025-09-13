@@ -7,6 +7,7 @@ import { BsFillBookmarkFill } from "react-icons/bs";
 import API from "@/config/API";
 import { useRouter } from "next/navigation";
 import { DELETE, GET } from "@/util/apicall";
+import { germanStandardApi } from "@/services/germanStandardApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import showPrice from "@/shared/helpers/showPrice";
 import { MdError } from "react-icons/md";
@@ -39,21 +40,39 @@ function WishListScreen() {
     isFetching,
     isError,
   } = useQuery({
-    queryFn: async () =>
-      await GET(API.WISHLIST_GETALL, {
-        order: "DESC",
-        page: page,
-        take: pageSize,
-      }),
+    queryFn: async () => {
+      // Use German Standard API for wishlist
+      const wishlistSummary = await germanStandardApi.getWishlistSummary(1, true, page, pageSize);
+      return {
+        status: true,
+        data: wishlistSummary.transactions || []
+      };
+    },
     queryKey: ["wishlist_items"],
     retry: 1,
     staleTime: 0,
   });
 
+  // useQuery({
+  //   queryFn: async () =>
+  //     await GET(API.WISHLIST_GETALL, {
+  //       order: "DESC",
+  //       page: page,
+  //       take: pageSize,
+  //     }),
+  //   queryKey: ["wishlist_items"],
+  //   retry: 1,
+  //   staleTime: 0,
+  // });
+
   const mutationDelete = useMutation({
-    mutationFn: (id: number) => {
-      return DELETE(API.WISHLIST + id);
+    mutationFn: async (id: number) => {
+      // Use German Standard API to delete wishlist item
+      return await germanStandardApi.deleteTransaction([id]);
     },
+    // mutationFn: (id: number) => {
+    //   return DELETE(API.WISHLIST + id);
+    // },
     onError: (error, variables, context) => {
       notificationApi.error({ message: error?.message });
     },

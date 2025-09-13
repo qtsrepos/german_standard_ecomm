@@ -5,7 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import CONFIG from "@/config/configuration";
-import { useGetSettings, useTokenExpiration } from "./services";
+import { 
+  // useGetSettings
+   useTokenExpiration } from "./services";
 import { usePathname, useRouter } from "next/navigation";
 import { Container } from "react-bootstrap";
 import Logo from "../../assets/images/headerlogonew.avif";
@@ -55,7 +57,7 @@ function Header() {
   const cartItems = session?.token ? cart.items : LocalCart.items;
 
 
-  useGetSettings();
+  // useGetSettings();
   useTokenExpiration();
 
   const handlepopovervisiblechange = () => {
@@ -159,8 +161,8 @@ function Header() {
                     trigger="hover"
                     content={<ProfileMenu close={handlepopovervisiblechange} />}
                     arrow={false}
-                    visible={issharepopovervisible}
-                    onVisibleChange={handlepopovervisiblechange}
+                    open={issharepopovervisible}
+                    onOpenChange={handlepopovervisiblechange}
                     overlayStyle={{ width: 230 }}
                   >
                     <div

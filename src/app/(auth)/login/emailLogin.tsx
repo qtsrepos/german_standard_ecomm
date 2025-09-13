@@ -4,7 +4,7 @@ import { Button, Form, Input, notification, Select } from "antd";
 import { BiErrorCircle } from "react-icons/bi";
 import { FaEye, FaEyeSlash, FaLock, FaEnvelope, FaUser } from "react-icons/fa";
 import { useRouter } from "next/navigation";
-import { getSession, signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useAppDispatch } from "@/redux/hooks";
 
 import { storeToken } from "@/redux/slice/authSlice";
@@ -46,10 +46,10 @@ function EmailLogin() {
         eg: 1, // Egypt
       };
 
-      // Use the new API structure with loginName, password, entityId, and channelId
+      // Use NextAuth signIn - this will call the German Standard API through the provider
       const result = await signIn("credentials", {
         redirect: false,
-        email: values.email, // This will be mapped to loginName in the backend
+        email: values.email,
         password: values.password,
         entityId: countryEntityMap[selectedCountry] || 1,
         channelId: 1,
@@ -60,15 +60,16 @@ function EmailLogin() {
       }
 
       if (result?.ok) {
-        // Get the session to check user role
-        const session: any = await getSession();
-
-        // Store tokens in Redux if needed
+        // Get the session to access user data and tokens
+        const session = await getSession();
+        
         if (session?.token && session?.refreshToken) {
+          // Store tokens in Redux for app-wide access
           dispatch(
             storeToken({
-              token: session?.token,
-              refreshToken: session?.refreshToken,
+              token: session.token,
+              refreshToken: session.refreshToken,
+              isRefreshing: false,
             })
           );
         }
@@ -79,12 +80,10 @@ function EmailLogin() {
         });
 
         // Redirect based on user role
-        if (session?.role === "admin" || session?.user?.role === "admin") {
+        const userRole = session?.role || "user";
+        if (userRole === "admin") {
           router.push("/auth/dashboard"); // Admin dashboard route
-        } else if (
-          session?.role === "seller" ||
-          session?.user?.role === "seller"
-        ) {
+        } else if (userRole === "seller") {
           router.push("/auth/dashboard"); // Seller dashboard route
         } else {
           router.push("/home"); // Regular user home route

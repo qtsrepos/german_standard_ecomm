@@ -23,18 +23,18 @@ function PopularItems(props: any) {
   const navigation = useRouter();
   const ref: any = useRef(null);
 
-  const getCategory = async () => {
-    console.log("Home screen loaded");
-    const url = API.CATEGORY_FEATURED;
-    try {
-      const categoryData: any = await GET(url, {});
-      if (categoryData.status) {
-        setFavCategories(categoryData.data);
-      }
-    } catch (err) {
-      console.log("Failed to get banners:", err);
-    }
-  };
+  // const getCategory = async () => {
+  //   console.log("Home screen loaded");
+  //   const url = API.CATEGORY_FEATURED;
+  //   try {
+  //     const categoryData: any = await GET(url, {});
+  //     if (categoryData.status) {
+  //       setFavCategories(categoryData.data);
+  //     }
+  //   } catch (err) {
+  //     console.log("Failed to get banners:", err);
+  //   }
+  // };
 
   const scroll = (ratio: any) => {
     const currentScrollLeft = ref.current.scrollLeft;
@@ -111,10 +111,9 @@ function PopularItems(props: any) {
   };
   useEffect(() => {
     setcategoryList(props?.data)
-    getCategory()
+    // getCategory()
   }, [])
 
-  console.log("rrttt,", props);
 
   return (
     <div className="container">

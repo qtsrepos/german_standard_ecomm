@@ -17,7 +17,7 @@ function ProfilePopover(props: any) {
       cancelText: "No",
       onOk: () => {
         clearReduxData(dispatch);
-        signOut();
+        signOut({ callbackUrl: "/login" });
       },
     });
   };
@@ -64,7 +64,7 @@ function ProfilePopover(props: any) {
       <div
         className="dashboard-ProfilePopoverItem2"
         onClick={() => {
-          handleLogout;
+          handleLogout();
         }}
       >
         <div>
