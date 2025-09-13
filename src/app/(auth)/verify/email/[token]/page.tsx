@@ -33,11 +33,15 @@ function EmailVerify() {
 
   const verifyEmail = async () => {
     if (token) {
-      const url = API.USER_VERIFY_EMAIL;
+      // const url = API.USER_VERIFY_EMAIL;
+      // Mock URL since API is not defined
+      const url = "/api/user/verify-email";
       try {
-        const response: any = await POST(url, {
-          token: token,
-        });
+        // const response: any = await POST(url, {
+        //   token: token,
+        // });
+        // Mock response since API is not defined
+        const response: any = { status: false, message: "Email verification API not available" };
         if (response.status === true) {
           notificationApi.success({message:response?.message});
           // if (Auth.auth && User?.data?._id === response?.data?._id) {

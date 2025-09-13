@@ -191,7 +191,6 @@ const DELETE = async (url: string, signal: AbortSignal | null = null) => {
 //   });
 // };
 
-export { GET, POST, PUT, PATCH, DELETE,
-  //  COMPRESS_IMAGE,
-    // DOCUMENT_UPLOAD 
-  };
+export { GET, POST, PUT, PATCH, DELETE, 
+  // COMPRESS_IMAGE, DOCUMENT_UPLOAD 
+};
