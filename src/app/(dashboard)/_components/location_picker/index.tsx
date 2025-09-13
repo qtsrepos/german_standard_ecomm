@@ -1,12 +1,12 @@
 import { AutoComplete, Button, Input, Modal, notification, Spin } from "antd";
 import React, { useState } from "react";
 import { IoSearchOutline } from "react-icons/io5";
-import MapPicker from "react-google-map-picker";
-import useDebounceQuery from "@/shared/hook/useDebounceQuery";
-import { useQuery } from "@tanstack/react-query";
-import API from "@/config/API_ADMIN";
+import MapPicker from "./MapPicker";
+// import useDebounceQuery from "@/shared/hook/useDebounceQuery";
+// import { useQuery } from "@tanstack/react-query";
+// import API from "@/config/API_ADMIN";
 import { LoadingOutlined } from "@ant-design/icons";
-import { GET } from "@/util/apicall";
+// import { GET } from "@/util/apicall";
 
 interface props {
   open: boolean;
@@ -25,7 +25,11 @@ function LocationPicker({
   const [zoom, setZoom] = useState(10);
   const [loading, setLoading] = useState(false);
   const [Notifications, contextHolder] = notification.useNotification();
-  const [query, , handleChange] = useDebounceQuery("", 300);
+  // const [query, , handleChange] = useDebounceQuery("", 300);
+  const query = "";
+  const handleChange = (value: string) => {
+    console.log("Search query:", value);
+  };
   const message = (msg: string, status: "error" | "success" = "error") =>
     Notifications[status]({
       message: msg,
@@ -55,23 +59,28 @@ function LocationPicker({
     }
   };
 
-  const { data: options, isLoading } = useQuery<any>({
-    queryKey: [API.AUTO_COMPLETE, { query }],
-    enabled: !!query,
-    select: (res) => (res?.status ? res?.data : []),
-  });
+  // TODO: Implement Google Places autocomplete API
+  // const { data: options, isLoading } = useQuery<any>({
+  //   queryKey: [API.AUTO_COMPLETE, { query }],
+  //   enabled: !!query,
+  //   select: (res) => (res?.status ? res?.data : []),
+  // });
+  
+  // Temporary fallback
+  const options: any[] = [];
+  const isLoading = false;
 
   const getLocation = async (place_id: string) => {
-    try {
-      const response: any = await GET(API.GOOGLE_PLACEPICKER, { place_id });
-      if (response?.status) {
-        onChange(response?.data?.latitude, response?.data?.longitude);
-        message("Location is selected successfully", "success");
-        close();
-      }
-    } catch (err) {
-      message("Failed to get Location.");
-    }
+    // try {
+    //   const response: any = await GET(API.GOOGLE_PLACEPICKER, { place_id });
+    //   if (response?.status) {
+    //     onChange(response?.data?.latitude, response?.data?.longitude);
+    //     message("Location is selected successfully", "success");
+    //     close();
+    //   }
+    // } catch (err) {
+    //   message("Failed to get Location.");
+    // }
   };
   return (
     <Modal
