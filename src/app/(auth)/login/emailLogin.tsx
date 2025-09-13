@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { signIn, getSession } from "next-auth/react";
 import { useAppDispatch } from "@/redux/hooks";
 
-import { storeToken } from "@/redux/slice/authSlice";
+import { updateTokens } from "@/redux/slice/authSlice";
 import { IoCaretDownSharp } from "react-icons/io5";
 import bh from "@/assets/images/bahrain.avif";
 import eg from "@/assets/images/egypt.avif";
@@ -66,10 +66,9 @@ function EmailLogin() {
         if (session?.token && session?.refreshToken) {
           // Store tokens in Redux for app-wide access
           dispatch(
-            storeToken({
+            updateTokens({
               token: session.token,
               refreshToken: session.refreshToken,
-              isRefreshing: false,
             })
           );
         }

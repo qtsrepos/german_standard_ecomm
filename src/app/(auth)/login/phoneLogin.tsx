@@ -11,7 +11,7 @@ import {
 import PrefixSelector from "@/components/prefixSelector/page";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { storeToken } from "@/redux/slice/authSlice";
+import { updateTokens } from "@/redux/slice/authSlice";
 import { useAppDispatch } from "@/redux/hooks";
 function PhoneLogin() {
   const [isLoading, setIsLoading] = useState(false);
@@ -94,7 +94,7 @@ function PhoneLogin() {
       if (result.ok) {
         const session: any = await getSession();
         dispatch(
-          storeToken({
+          updateTokens({
             token: session?.token,
             refreshToken: session?.refreshToken,
           })

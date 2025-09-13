@@ -8,7 +8,7 @@ import { LoadingOutlined } from "@ant-design/icons";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSession, signIn } from "next-auth/react";
-import { storeToken } from "@/redux/slice/authSlice";
+import { updateTokens } from "@/redux/slice/authSlice";
 import { useAppDispatch } from "@/redux/hooks";
 
 const antIcon = <LoadingOutlined style={{ fontSize: 20 }} spin />;
@@ -30,7 +30,7 @@ function GmailLogin(props: any) {
       if (result.ok) {
         const session: any = await getSession();
         dispatch(
-          storeToken({
+          updateTokens({
             token: session?.token,
             refreshToken: session?.refreshToken,
           })
