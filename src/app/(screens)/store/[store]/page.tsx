@@ -24,7 +24,7 @@ function StoreFront() {
 
   const getProductsByStore = async (current: number = page) => {
     const url =
-      API.PRODUCT_SEARCH_ALL_CATEGORIES +
+      // API.PRODUCT_SEARCH_ALL_CATEGORIES +
       storeId +
       `?order=${order}&page=${current}&take=${pageSize}&price=${price}`;
     if (storeId) {

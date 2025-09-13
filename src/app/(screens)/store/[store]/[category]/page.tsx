@@ -31,7 +31,7 @@ function SecondPage() {
   const mediaQuery = useMediaQuery(762);
   const getProductsByCategory = async (current: number) => {
     const url =
-      API.PRODUCT_SEARCH_ITEM +
+      // API.PRODUCT_SEARCH_ITEM +
       storeId +
       `?subCategory=${category}&order=DESC&page=${current}&take=${pageSize}&category=${ogCategory}`;
     const controller = new AbortController();

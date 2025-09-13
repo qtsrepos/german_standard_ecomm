@@ -13,19 +13,19 @@ export default function TopSellingStore() {
   const [topStore, setTopStore] = useState<any>();
   const data = useSelector(reduxLatLong);
   const LocationDetails = useSelector(reduxLocation);
-  const Settings = useSelector(reduxSettings);
-  useEffect(() => {
-    getTopStore();
-  }, [data]);
-  const getTopStore = async () => {
-    const url = `${API.PRODUCT_SEARCH_TOPSTORE}?lattitude=${data.latitude}&longitude=${data.longitude}&take=12&radius=${Settings?.radius}`;
-    try {
-      const response: any = await GET(url, {});
-      if (response?.status) {
-        setTopStore(response.data);
-      }
-    } catch (error) {}
-  };
+  // const Settings = useSelector(reduxSettings);
+  // useEffect(() => {
+  //   getTopStore();
+  // }, [data]);
+  // const getTopStore = async () => {
+  //   const url = `${API.PRODUCT_SEARCH_TOPSTORE}?lattitude=${data.latitude}&longitude=${data.longitude}&take=12&radius=${Settings?.radius}`;
+  //   try {
+  //     const response: any = await GET(url, {});
+  //     if (response?.status) {
+  //       setTopStore(response.data);
+  //     }
+  //   } catch (error) {}
+  // };
 
   return (
     <div className="container">

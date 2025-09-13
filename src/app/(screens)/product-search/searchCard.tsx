@@ -52,7 +52,8 @@ function SearchCard(props: any) {
         var locaton = `&lattitude=${Number(
           Location?.latitude
         )}&longitude=${Number(Location?.longitude)}&radius=${Settings?.radius}`;
-        var url = API.PRODUCT_SEARCH_AUTOCOMPLETE + "?query=" + value + locaton;
+        var url = // API.PRODUCT_SEARCH_AUTOCOMPLETE + 
+        "?query=" + value + locaton;
         var respose: any = await GET(url);
         if (respose?.data?.length) {
           setRecommendation(respose?.data);

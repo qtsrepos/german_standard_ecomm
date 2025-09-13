@@ -11,7 +11,8 @@ async function fetchData(id: string) {
     console.log('session')
     // const session: any = await getServerSession(options);
     const response = await GET_SERVER(
-      API.PRODUCT_SEARCH_DETAILS + id,
+      // API.PRODUCT_SEARCH_DETAILS + 
+      id,
       {},
       null,
       // session?.token

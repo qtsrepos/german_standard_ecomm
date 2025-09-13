@@ -63,39 +63,39 @@ function Page() {
   const longitude = Settings.isLocation == true ? Location.longitude : "";
   
   const getProducts = async (page: number) => {
-    const price =
-      selectedTags[1].status == true
-        ? "DESC"
-        : selectedTags[2].status == true
-        ? "ASC"
-        : "RAND";
-    const order = selectedTags[0].value;
-    const searchType =
-      Settings?.type === "multi"
-        ? API.PRODUCT_SEARCH_NEW_MULTI
-        : API.PRODUCT_SEARCH_NEW_SINGLE;
+    // const price =
+    //   selectedTags[1].status == true
+    //     ? "DESC"
+    //     : selectedTags[2].status == true
+    //     ? "ASC"
+    //     : "RAND";
+    // const order = selectedTags[0].value;
+    // const searchType =
+    //   Settings?.type === "multi"
+    //     ? API.PRODUCT_SEARCH_NEW_MULTI
+    //     : API.PRODUCT_SEARCH_NEW_SINGLE;
 
-    const url =
-      searchType +
-      `?query=${serchInput}&order=${order}&price=${price}&page=${page}&take=${pageSize}&lattitude=${lattitude}&longitude=${longitude}&radius=${Settings.radius}`;
-    setLoading(true);
-    try {
-      if (serchInput) {
-        const response: any = await GET(url);
-        if (response?.status) {
-          setProduct(response?.data);
-          setMeta(response?.meta);
-        }
-      }
-    } catch (err: any) {
-      Notifications["error"]({
-        message: "Failed to Get Categories",
-        description: err.message,
-      });
-    } finally {
-      setInitial(false);
-      setLoading(false);
-    }
+    // const url =
+    //   searchType +
+    //   `?query=${serchInput}&order=${order}&price=${price}&page=${page}&take=${pageSize}&lattitude=${lattitude}&longitude=${longitude}&radius=${Settings.radius}`;
+    // setLoading(true);
+    // try {
+    //   if (serchInput) {
+    //     const response: any = await GET(url);
+    //     if (response?.status) {
+    //       setProduct(response?.data);
+    //       setMeta(response?.meta);
+    //     }
+    //   }
+    // } catch (err: any) {
+    //   Notifications["error"]({
+    //     message: "Failed to Get Categories",
+    //     description: err.message,
+    //   });
+    // } finally {
+    //   setInitial(false);
+    //   setLoading(false);
+    // }
   };
   
   const changePage = async (page: number, take: number) => {

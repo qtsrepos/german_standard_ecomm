@@ -26,7 +26,7 @@ function StoreSearchPage() {
   const order = searchParams.get("order") || "ASC";
   const getProducts = async (current: number) => {
     const url =
-      API.PRODUCT_SEARCH_ITEM +
+      // API.PRODUCT_SEARCH_ITEM +
       storeId +
       `?query=${search}&order=DESC&price=ASC&page=${current}&take=${pageSize}`;
     if (storeId && search) {

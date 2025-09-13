@@ -19,21 +19,25 @@ function RelatedProducts(props: Props) {
   const setting = useAppSelector(reduxSettings);
   const latLong = useAppSelector(reduxLatLong);
   //function
-  const { data: relatedProducts, isLoading } = useQuery({
-    queryFn: ({ queryKey }) =>
-      GET(API.PRODUCT_SEARCH_NEW_SINGLE, queryKey[1] as object),
-    queryKey: [
-      "related_product",
-      {
-        lattitude: latLong.latitude,
-        longitude: latLong.longitude,
-        take: "10",
-        radius: setting.radius,
-        subCategory: props?.data?.subCategory,
-        exclude: props?.data?._id,
-      },
-    ],
-  });
+  // const { data: relatedProducts, isLoading } = useQuery({
+  //   queryFn: ({ queryKey }) =>
+  //     GET(API.PRODUCT_SEARCH_NEW_SINGLE, queryKey[1] as object),
+  //   queryKey: [
+  //     "related_product",
+  //     {
+  //       lattitude: latLong.latitude,
+  //       longitude: latLong.longitude,
+  //       take: "10",
+  //       radius: setting.radius,
+  //       subCategory: props?.data?.subCategory,
+  //       exclude: props?.data?._id,
+  //     },
+  //   ],
+  // });
+
+  // Mock data for now since API endpoint is not defined
+  const relatedProducts = { data: [] };
+  const isLoading = false;
 
   
 

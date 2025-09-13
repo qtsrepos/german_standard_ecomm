@@ -142,53 +142,56 @@ const DELETE = async (url: string, signal: AbortSignal | null = null) => {
     throw error;
   }
 };
-const COMPRESS_IMAGE = async (file: File) => {
-  try {
-    if (!file) return Promise.reject(new Error("No Image Is selected.."));
-    const formData = new FormData();
-    formData.append("file", file);
-    const response = await fetch(`${API.BASE_URL}${API.IMAGE_COMPRESS}`, {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-    if (!response?.ok)
-      return Promise.reject(
-        new Error(data?.message ?? "Something went wrong..")
-      );
-    return { ...data, url: data.Location, status: true };
-  } catch (err: any) {
-    return Promise.reject(new Error(err.message));
-  }
-};
-const DOCUMENT_UPLOAD = async (file: any) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      if (file) {
-        message.loading({
-          type: "loading",
-          content: "Action in progress..",
-          duration: 1,
-        });
-        const formDataFiles = new FormData();
-        formDataFiles.append("file", file);
-        const fileUpload = await fetch(`${API.BASE_URL}${API.FILE_UPLOAD}`, {
-          method: "POST",
-          body: formDataFiles,
-        });
-        if (fileUpload.ok) {
-          const jsonResponse = await fileUpload.text();
-          resolve(jsonResponse);
-        } else {
-          reject("Failed to upload file");
-        }
-      } else {
-        reject("no file selected");
-      }
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
+// const COMPRESS_IMAGE = async (file: File) => {
+//   try {
+//     if (!file) return Promise.reject(new Error("No Image Is selected.."));
+//     const formData = new FormData();
+//     formData.append("file", file);
+//     const response = await fetch(`${API.BASE_URL}${API.IMAGE_COMPRESS}`, {
+//       method: "POST",
+//       body: formData,
+//     });
+//     const data = await response.json();
+//     if (!response?.ok)
+//       return Promise.reject(
+//         new Error(data?.message ?? "Something went wrong..")
+//       );
+//     return { ...data, url: data.Location, status: true };
+//   } catch (err: any) {
+//     return Promise.reject(new Error(err.message));
+//   }
+// };
+// const DOCUMENT_UPLOAD = async (file: any) => {
+//   return new Promise(async (resolve, reject) => {
+//     try {
+//       if (file) {
+//         message.loading({
+//           type: "loading",
+//           content: "Action in progress..",
+//           duration: 1,
+//         });
+//         const formDataFiles = new FormData();
+//         formDataFiles.append("file", file);
+//         const fileUpload = await fetch(`${API.BASE_URL}/api/upload/file`, {
+//           method: "POST",
+//           body: formDataFiles,
+//         });
+//         if (fileUpload.ok) {
+//           const jsonResponse = await fileUpload.text();
+//           resolve(jsonResponse);
+//         } else {
+//           reject("Failed to upload file");
+//         }
+//       } else {
+//         reject("no file selected");
+//       }
+//     } catch (err) {
+//       reject(err);
+//     }
+//   });
+// };
 
-export { GET, POST, PUT, PATCH, DELETE, COMPRESS_IMAGE, DOCUMENT_UPLOAD };
+export { GET, POST, PUT, PATCH, DELETE,
+  //  COMPRESS_IMAGE,
+    // DOCUMENT_UPLOAD 
+  };

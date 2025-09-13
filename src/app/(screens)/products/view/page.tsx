@@ -36,12 +36,13 @@ function Page() {
   //==================
   const urls: any = {
     recent:
-      API.PRODUCT_SEARCH_NEW_SINGLE +
+      // API.PRODUCT_SEARCH_NEW_SINGLE +
       `?lattitude=${lattitude}&longitude=${longitude}&take=18&radius=${Settings?.radius}&tag=recent`,
     toprated:
-      API.PRODUCT_SEARCH_NEW_SINGLE +
+      // API.PRODUCT_SEARCH_NEW_SINGLE +
       `?lattitude=${lattitude}&longitude=${longitude}&take=18&radius=${Settings?.radius}&tag=top`,
-    visited: API.USER_HISTORY + `?take=18`,
+    visited: // API.USER_HISTORY + 
+    `?take=18`,
   };
   //=====================
   const getProducts = async (page: number) => {
