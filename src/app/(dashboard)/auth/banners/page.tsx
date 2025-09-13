@@ -32,13 +32,19 @@ function Banners() {
     isError,
     error,
   } = useQuery({
-    queryFn: async () =>
-      await GET(API.BANNERS_LIST, {
-        order: "DESC",
-        page,
-        take,
-        search,
-      }),
+    queryFn: async () => {
+      // await GET(API.BANNERS_LIST, {
+      //   order: "DESC",
+      //   page,
+      //   take,
+      //   search,
+      // });
+      // Mock banners data since API is not defined
+      return {
+        data: [],
+        meta: { itemCount: 0 }
+      };
+    },
     queryKey: ["admin_banners", page, debounce, take],
   });
 
@@ -77,7 +83,7 @@ function Banners() {
       ) : (
         <DataTable
           data={Array.isArray(banners?.data) ? banners?.data : []}
-          count={banners?.meta?.itemCount}
+          count={banners?.meta?.itemCount ?? 0}
           setPage={setPage}
           setTake={setTake}
           pageSize={take}

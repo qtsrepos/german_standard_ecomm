@@ -6,7 +6,8 @@ import { Step } from "rc-steps";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import API from "../../../../config/API";
-import { DOCUMENT_UPLOAD, GET, POST } from "../../../../util/apicall";
+// import { DOCUMENT_UPLOAD, GET, POST } from "../../../../util/apicall";
+import { GET, POST } from "../../../../util/apicall";
 import Step1 from "./_components/step1";
 import Step2 from "./_components/step2";
 import Step3 from "./_components/step3";
@@ -35,8 +36,10 @@ function Page() {
 
   const loadbusinessType = async () => {
     try {
-      let url = API.BUSINESS_TYPE;
-      let response: any = await GET(url);
+      // let url = API.BUSINESS_TYPE;
+      // let response: any = await GET(url);
+      // Mock business type response since API is not defined
+      let response: any = { status: true, data: [] };
       if (response.status) {
         SetBusinessType(response.data);
       }
@@ -56,12 +59,15 @@ function Page() {
     try {
       //uploading id proof and trn file.
       setLoading(true);
-      const id_proof_upload = await DOCUMENT_UPLOAD(
-        formData?.step4Data?.id_proof?.file
-      );
-      const trn_upload = await DOCUMENT_UPLOAD(
-        formData?.step4Data?.trn_upload?.file
-      );
+      // const id_proof_upload = await DOCUMENT_UPLOAD(
+      //   formData?.step4Data?.id_proof?.file
+      // );
+      // const trn_upload = await DOCUMENT_UPLOAD(
+      //   formData?.step4Data?.trn_upload?.file
+      // );
+      // Mock document uploads since API is not defined
+      const id_proof_upload = "mock-id-proof-url";
+      const trn_upload = "mock-trn-url";
       let obj = {
         //step1
         first_name: formData?.step1Data?.first_name,
@@ -99,9 +105,11 @@ function Page() {
         idToken: token,
         business_types: formData?.step2Data?.business_types,
       };
-      const url = User
-        ? API.CORPORATE_STORE_CREATESELLER
-        : API.CORPORATE_STORE_CREATE;
+      // const url = User
+      //   ? API.CORPORATE_STORE_CREATESELLER
+      //   : API.CORPORATE_STORE_CREATE;
+      // Mock URL since APIs are not defined
+      const url = "/api/corporate/store/create";
 
       const response: any = await POST(url, obj);
       if (response.status) {

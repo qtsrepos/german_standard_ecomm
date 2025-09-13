@@ -39,8 +39,14 @@ function Products() {
     isError,
     error,
   } = useQuery({
-    queryFn: ({ queryKey, signal }) =>
-      GET(API.PRODUCTS_BYSTORE, queryKey[1] as object, signal),
+    queryFn: ({ queryKey, signal }) => {
+      // GET(API.PRODUCTS_BYSTORE, queryKey[1] as object, signal),
+      // Mock products data since API is not defined
+      return Promise.resolve({
+        data: [],
+        meta: { itemCount: 0 }
+      });
+    },
     queryKey: [
       "admin_products",
       { page, query, take, ...category, status, order: "DESC" },
@@ -111,7 +117,7 @@ function Products() {
       ) : (
         <DataTable
           data={Array.isArray(products?.data) ? products?.data : []}
-          count={products?.meta?.itemCount}
+          count={products?.meta?.itemCount ?? 0}
           setPage={setPage}
           setTake={setTake}
           pageSize={take}

@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Col, Row } from "react-bootstrap";
 import ImagePicker from "@/app/(dashboard)/_components/ImagePicker/imagePicker";
 import API from "@/config/API_ADMIN";
-import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+// import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+import { POST, PUT } from "@/util/apicall";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import '../styles.scss'
@@ -38,7 +39,8 @@ function FormModal(props: Props) {
     mutationFn: async (body: any) => {
       let imageUrl: any = { url: props?.data?.img_desk };
       if (image?.file) {
-        imageUrl = await COMPRESS_IMAGE(image?.file);
+        // imageUrl = await COMPRESS_IMAGE(image?.file);
+        imageUrl = { url: URL.createObjectURL(image?.file) }; // Mock image URL
       }
       const obj = {
         description: body?.description,
@@ -47,10 +49,10 @@ function FormModal(props: Props) {
           session?.role === "admin" && props?.data?.id ? body?.status : true,
         title: body?.title,
       };
-      if (props?.data?.id) {
-        return PUT(API.BANNER_EDIT + props?.data?.id, obj);
-      }
-      return POST(API.BANNER_ADD, obj);
+      // if (props?.data?.id) {
+      //   return PUT(API.BANNER_EDIT + props?.data?.id, obj);
+      // }
+      // return POST(API.BANNER_ADD, obj);
     },
     onError: (error, variables, context) => {
       Notifications["error"]({

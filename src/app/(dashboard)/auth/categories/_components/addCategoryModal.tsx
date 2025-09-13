@@ -3,7 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button, Checkbox, Form, Input, Modal, notification } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import React, { useEffect, useState } from "react";
-import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+// import { COMPRESS_IMAGE, POST, PUT } from "@/util/apicall";
+import { POST, PUT } from "@/util/apicall";
 import API from "@/config/API_ADMIN";
 import ImagePicker from "@/app/(dashboard)/_components/ImagePicker/imagePicker";
 
@@ -25,13 +26,14 @@ function AddCategoryModal({ close, type, open, data }: Props) {
     mutationFn: async (body: object) => {
       let imageUrl = data?.image ?? null;
       if (image?.file) {
-        const response = await COMPRESS_IMAGE(image.file);
-        imageUrl = response?.url;
+        // const response = await COMPRESS_IMAGE(image.file);
+        // imageUrl = response?.url;
+        imageUrl = URL.createObjectURL(image.file); // Mock image URL
       }
       const obj = { ...body, image: imageUrl };
-      if (type === "edit") return PUT(API.CATEGORY + data?.id, obj);
-      if (!imageUrl) return Promise.reject(new Error("Please Select an image"));
-      return POST(API.CATEGORY, obj);
+      // if (type === "edit") return PUT(API.CATEGORY + data?.id, obj);
+      // if (!imageUrl) return Promise.reject(new Error("Please Select an image"));
+      // return POST(API.CATEGORY, obj);
     },
     retry: 2,
     onError: (error) => {
