@@ -12,28 +12,28 @@ function ForgotPassword() {
   const router = useRouter();
 
   const ForgotPassword = async (val: any) => {
-    try {
-      setIsLoading(true);
-      let url = API.USER_FORGOT_PASSWORD;
-      const obj = {
-        email: val?.email,
-      };
-      const response: any = await POST(url, obj);
-      if (response.status) {
-        notificationApi.success({
-          message: `Password Reset link has been sent to your mail id. Please check`,
-        });
-        setTimeout(() => {
-          router.push("/");
-        }, 2000);
-      } else {
-        notificationApi.error({ message: response.message ?? "" });
-      }
-    } catch (err) {
-      notificationApi.error({ message: `Ooops something went wrong...!` });
-    } finally {
-      setIsLoading(false);
-    }
+    // try {
+    //   setIsLoading(true);
+    //   let url = API.USER_FORGOT_PASSWORD;
+    //   const obj = {
+    //     email: val?.email,
+    //   };
+    //   const response: any = await POST(url, obj);
+    //   if (response.status) {
+    //     notificationApi.success({
+    //       message: `Password Reset link has been sent to your mail id. Please check`,
+    //     });
+    //     setTimeout(() => {
+    //       router.push("/");
+    //     }, 2000);
+    //   } else {
+    //     notificationApi.error({ message: response.message ?? "" });
+    //   }
+    // } catch (err) {
+    //   notificationApi.error({ message: `Ooops something went wrong...!` });
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
   return (
     <div className="Screen-box">
