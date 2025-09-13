@@ -1,0 +1,10 @@
+.profile-sidebar-txt1 {
+    // Default font size
+    font-size: 14px;
+    font-weight: 600;
+
+    @media (min-width: 768px) and (max-width: 1000px) {
+      font-size: 0.570rem; // Adjust this value as needed for a smaller text size
+      font-weight: 600;
+    }
+  }
