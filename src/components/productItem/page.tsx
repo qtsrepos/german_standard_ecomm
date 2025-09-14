@@ -508,7 +508,7 @@ function ProductItem(props: any) {
   };
 
   const openDetails = () => {
-    navigate.push(`/product-details/${product.code}/?pid=${product.pid}&review=2`);
+    navigate.push(`/${product.code}/?pid=${product.pid}&review=2`);
   };
 
   const addToCart = async (quantity: number) => {
