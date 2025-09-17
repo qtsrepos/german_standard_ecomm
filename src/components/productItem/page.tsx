@@ -375,10 +375,15 @@ import { FaShoppingCart, FaSearch, FaShare, FaHeart } from "react-icons/fa";
 import { BsCart2 } from "react-icons/bs";
 import { CiHeart, CiSearch, CiShoppingCart, CiShuffle } from "react-icons/ci";
 import { log } from "console";
+import { getProductRates, getBestProductRate, ProductRate } from "@/util/productRatesApi";
 
 function ProductItem(props: any) {
   const [cartBtn, setCartBtn] = useState(false);
   const [isHovered, setIsHovered] = useState(false); // Added state for hover
+  const [productRates, setProductRates] = useState<ProductRate[]>([]);
+  const [bestRate, setBestRate] = useState<ProductRate | null>(null);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [productStock, setProductStock] = useState({ unit: 10, status: true });
   const navigate = useRouter();
   const dispatch = useDispatch();
   const Settings = useSelector(reduxSettings);
@@ -400,57 +405,65 @@ function ProductItem(props: any) {
     description: props?.item?.description || props?.item?.Description,
     extraDescription: props?.item?.extraDescription || props?.item?.ExtraDescription,
     image: props?.item?.image || props?.item?.Image,
-    price: props?.item?.price || 0,
-    retail_rate: props?.item?.price || 0,
-    unit: 10, // Default quantity, will need to get from stock API
-    status: props?.item?.inStock !== undefined ? props?.item?.inStock : true,
+    price: bestRate?.rate || props?.item?.price || 0,
+    retail_rate: bestRate?.rate || props?.item?.price || 0,
+    unit: productStock.unit, // Use state for stock quantity
+    status: productStock.status, // Use state for stock status
     averageRating: 0, // Default rating
     totalReviews: 0, // Default reviews
     createdAt: new Date().toISOString(), // Default creation date
     category: props?.item?.category,
   };
 
-  // Fetch product rate and stock data for German Standard API format
+  // Fetch product rates and stock data for German Standard API format
   useEffect(() => {
     const fetchProductData = async () => {
-      // Only fetch if we have German Standard API format (uppercase properties) and no price
-      if (props?.item?.Id && !props?.item?.price) {
+      const productId = props?.item?.id || props?.item?._id || props?.item?.Id;
+      console.log("product.id====>>", productId);
+      
+      if (productId) {
+        setRatesLoading(true);
         try {
-          // Fetch product rate
-          const rateResponse = await GET(API.GERMAN_STANDARD_PRODUCT_RATE, {
-            productId: product.id
-          });
-          console.log("rateResponse=====>>>>>", rateResponse);
-          if (rateResponse?.status === "Success") {
-            const rateData = JSON.parse(rateResponse.result);
-            if (rateData && rateData.length > 0) {
-              product.price = rateData[0].Rate || 0;
-              product.retail_rate = rateData[0].Rate || 0;
-            }
-          }
+          // Only fetch rates if user is authenticated
+          if (session?.token) {
+            // Fetch all product rates
+            const rates = await getProductRates(productId);
+            console.log("rates====>>", rates);
+            setProductRates(rates);
+            
+            // Get the best rate (lowest price)
+            const best = await getBestProductRate(productId);
+            setBestRate(best);
 
-          // Fetch stock data
-          const stockResponse = await GET(API.GERMAN_STANDARD_STOCK, {
-            productId: product.id
-          });
+            // Fetch stock data with authentication
+            const stockData = await GET(`${API.GERMAN_STANDARD_STOCK}?productId=${productId}`);
 
-          if (stockResponse?.status === "Success") {
-            const stockData = JSON.parse(stockResponse.result);
-            if (stockData && stockData.length > 0) {
-              product.unit = stockData[0].Quantity || 0;
-              product.status = stockData[0].Quantity > 0;
+            if (stockData?.status === "Success") {
+              const parsedStockData = JSON.parse(stockData.result);
+              if (parsedStockData && parsedStockData.length > 0) {
+                setProductStock({
+                  unit: parsedStockData[0].Quantity || 0,
+                  status: parsedStockData[0].Quantity > 0
+                });
+              }
             }
+          } else {
+            console.log("User not authenticated, skipping rate and stock fetching");
+            // Set default values for unauthenticated users
+            setProductStock({ unit: 10, status: true });
           }
         } catch (error) {
           console.error("Error fetching product data:", error);
+          // Set default values on error
+          setProductStock({ unit: 10, status: true });
+        } finally {
+          setRatesLoading(false);
         }
       }
     };
 
-    if (product.id) {
-      fetchProductData();
-    }
-  }, [product.id]);
+    fetchProductData();
+  }, [props?.item?.id, props?.item?._id, props?.item?.Id, session?.token]);
 
   // Update total price when quantity or price changes
   useEffect(() => {
@@ -814,14 +827,57 @@ function ProductItem(props: any) {
           </Popover> */}
           <div className="d-flex justify-content-between">
             <div className="ProductItem-txt3 text-center text-sm-start">
-              {product.retail_rate > 0
-                ? new Intl.NumberFormat("en-US", {
+              {ratesLoading ? (
+                <span className="text-muted">Loading prices...</span>
+              ) : bestRate ? (
+                <div>
+                  <div className="fw-bold">
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: Settings?.currency || "USD",
+                    }).format(bestRate.rate)}
+                    <span className="text-muted small ms-1">/ {bestRate.unitName}</span>
+                  </div>
+                  {productRates.length > 1 && (
+                    <div className="small text-muted">
+                      {productRates.length} pricing options available
+                    </div>
+                  )}
+                </div>
+              ) : product.retail_rate > 0 ? (
+                new Intl.NumberFormat("en-US", {
                   style: "currency",
                   currency: Settings?.currency || "USD",
                 }).format(product.retail_rate)
-                : "Price on request"}
+              ) : "Price on requesty"}
             </div>
           </div>
+          
+          {/* Detailed Rates Display */}
+          {productRates.length > 1 && !ratesLoading && (
+            <div className="mt-2">
+              <div className="small text-muted mb-1">Available rates:</div>
+              <div className="d-flex flex-wrap gap-1">
+                {productRates.slice(0, 3).map((rate, index) => (
+                  <span
+                    key={index}
+                    className={`badge ${rate === bestRate ? 'bg-success' : 'bg-light text-dark'}`}
+                    style={{ fontSize: '0.7rem' }}
+                  >
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: Settings?.currency || "USD",
+                    }).format(rate.rate)} / {rate.unitName}
+                  </span>
+                ))}
+                {productRates.length > 3 && (
+                  <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }}>
+                    +{productRates.length - 3} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="d-flex flex-column align-items-center mt-2">

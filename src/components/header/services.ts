@@ -13,9 +13,8 @@ import {
 } from "@/redux/slice/authSlice";
 import { message } from "antd";
 import { jwtDecode } from "jwt-decode";
-import { signOut } from "next-auth/react";
-import { germanStandardRefreshTokens } from "@/services/germanStandardApi";
-const delay = 10000; //before this time the token will refreshed.
+import { signOut, useSession } from "next-auth/react";
+// Removed unused imports and variables
 
 // export const useGetSettings = () => { 
 //   const dispatch = useAppDispatch();
@@ -42,122 +41,62 @@ const delay = 10000; //before this time the token will refreshed.
 // };
 
 export const useTokenExpiration = () => {
+  console.log("useTokenExpiration mounted ✅");
   const dispatch = useAppDispatch();
+  const { data: session, status } = useSession();
   const accessToken = useAppSelector(reduxAccessToken);
-  const refresh = useAppSelector(reduxRefreshToken);
+  const refreshToken = useAppSelector(reduxRefreshToken);
 
+  // Sync tokens from NextAuth session to Redux if available
+  useEffect(() => {
+    if (status === "authenticated" && session?.token && session?.refreshToken) {
+      // Only update if Redux doesn't have tokens or they're different
+      if (!accessToken || !refreshToken || 
+          accessToken !== session.token || 
+          refreshToken !== session.refreshToken) {
+        console.log("Syncing tokens from NextAuth session to Redux");
+        dispatch(updateTokens({
+          token: session.token,
+          refreshToken: session.refreshToken,
+        }));
+      }
+    }
+  }, [session?.token, session?.refreshToken, status, dispatch, accessToken, refreshToken]);
+
+  // Check if token is expired and log out if so
   useEffect(() => {
     if (!accessToken) {
       return;
     }
+    
     try {
       const decoded: any = jwtDecode(accessToken);
-      let currentDate = new Date();
-      
-      // Check if token is expired or about to expire (with 10 second buffer)
-      const tokenExpiryTime = decoded.exp * 1000;
-      const currentTime = currentDate.getTime();
-      const timeUntilExpiry = tokenExpiryTime - currentTime;
-      
-      console.log(`Token expiry check - Current time: ${currentTime}, Token expires: ${tokenExpiryTime}, Time until expiry: ${timeUntilExpiry}ms`);
-      
-      if (decoded.exp && tokenExpiryTime < currentTime + delay) {
-        console.log("Token is expired or about to expire, refreshing...");
-        if (!refresh) {
-          handleTokenExpiration();
-        } else {
-          createRefreshToken();
-        }
-      } else {
-        // fetchUser();
-        // fetchCartItems();
-        
-        // Set timer to refresh token 10 seconds before expiry
-        if (timeUntilExpiry > delay) {
-          console.log(`Setting timer to refresh token in ${timeUntilExpiry - delay}ms`);
-          const timer = setTimeout(() => {
-            console.log("Timer triggered - refreshing token");
-            createRefreshToken();
-          }, timeUntilExpiry - delay);
+      const currentTime = Date.now();
+      const expiryTime = decoded.exp * 1000; // convert to ms
+      const timeUntilExpiry = expiryTime - currentTime;
 
-          return () => clearTimeout(timer);
-        } else {
-          console.log("Token expires too soon, refreshing immediately");
-          createRefreshToken();
-        }
+      console.log(
+        `⏳ Checking token expiry → now=${currentTime}, exp=${expiryTime}, timeUntilExpiry=${timeUntilExpiry}`
+      );
+      
+      // If already expired, log out immediately
+      if (timeUntilExpiry <= 0) {
+        console.log("⚠️ Token expired → logging out...");
+        handleTokenExpiration();
       }
     } catch (err) {
-      console.log("Error in useTokenExpiration:", err);
+      console.error("❌ Error decoding token:", err);
+      handleTokenExpiration();
     }
   }, [accessToken]);
 
-  const createRefreshToken = async () => {
-    try {
-      if (!refresh) {
-        console.log("No refresh token available, logging out");
-        handleTokenExpiration();
-        return;
-      }
-
-      console.log("Attempting to refresh token via German Standard API...");
-      const response = await germanStandardRefreshTokens(refresh);
-      
-      if (response.status === "Success" && response.statusCode === 2000) {
-        console.log("Token refresh successful, updating tokens in Redux store");
-        message.loading({
-          type: "loading",
-          content: "Updating User Info..",
-          duration: 1,
-        });
-        dispatch(
-          updateTokens({
-            token: response.result.accessToken,
-            refreshToken: response.result.refreshToken,
-          })
-        );
-        console.log("Tokens refreshed successfully via useTokenExpiration");
-      } else {
-        console.error("Token refresh failed with response:", response);
-        handleTokenExpiration();
-      }
-    } catch (err) {
-      console.error("Token refresh error in useTokenExpiration:", err);
-      handleTokenExpiration();
-    }
-  };
-
-  // const fetchUser = async () => {
-  //   const url = API.USER_REFRESH;
-  //   try {
-  //     const user: any = await GET(url);
-  //     if (user?.status && user?.data?.status == true) {
-  //       // dispatch(update(user?.data));
-  //     } else {
-  //       return;
-  //     }
-  //   } catch (err) {}
-  // };
-
-  // const fetchCartItems = async () => {
-  //   TODO: Add proper cart API endpoint when available
-  //   try {
-  //     const url = API.CART_GET_ALL;
-  //     const cartItems: any = await GET(url);
-  //     if (cartItems.status) {
-  //       dispatch(storeCart(cartItems.data));
-  //     }
-  //   } catch (err) {}
-  // };
-
   const handleTokenExpiration = () => {
     message.warning({
-      type: "loading",
-      content: "Your Session Has been Expired Please Login Again..",
+      content: "Your session has expired. Please login again.",
       duration: 2,
       onClose: async () => {
-        await signOut({ callbackUrl: "/" });
+        await signOut({ callbackUrl: "/login" });
         clearReduxData(dispatch);
-        // logoutChannel.postMessage("Logout");
       },
     });
   };

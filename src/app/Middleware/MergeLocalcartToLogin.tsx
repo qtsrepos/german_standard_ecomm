@@ -23,11 +23,11 @@ const MergeLocalcartToLogin = async () => {
 
         if (LocalCart.length == 0) {
             try {
-                const url = API.CART_GET_ALL;
-                const cartItems: any = await GET(url);
-                if (cartItems.status) {
-                    dispatch(storeCart(cartItems.data));
-                }
+                // const url = API.CART_GET_ALL;
+                // const cartItems: any = await GET(url);
+                // if (cartItems.status) {
+                //     dispatch(storeCart(cartItems.data));
+                // }
             } catch (err) { }
         } else {
             LocalCart.forEach(async (item: any) => {
@@ -43,12 +43,12 @@ const MergeLocalcartToLogin = async () => {
                 }
             });
             dispatch(clearLocalCart());
-            try {
-                const cartItems: any = await GET(API.CART_GET_ALL);
-                if (cartItems.status) {
-                    dispatch(storeCart(cartItems.data));
-                }
-            } catch (err) { }
+            // try {
+            //     const cartItems: any = await GET(API.CART_GET_ALL);
+            //     if (cartItems.status) {
+            //         dispatch(storeCart(cartItems.data));
+            //     }
+            // } catch (err) { }
         }
     }
 

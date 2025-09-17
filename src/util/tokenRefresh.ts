@@ -106,8 +106,8 @@ export class TokenRefreshUtil {
   }
 
   /**
-   * Get a valid access token, refreshing if necessary
-   * @returns Promise<string | null> - valid access token or null if refresh failed
+   * Get the current access token (no refresh logic)
+   * @returns Promise<string | null> - current access token or null if not available
    */
   public static async getValidAccessToken(): Promise<string | null> {
     const state = store.getState();
@@ -117,20 +117,7 @@ export class TokenRefreshUtil {
       return null;
     }
 
-    // Check if token is expired or about to expire
-    if (this.isTokenExpired(accessToken)) {
-      console.log("Access token is expired or about to expire, refreshing...");
-      const refreshSuccess = await this.refreshAccessToken();
-      
-      if (refreshSuccess) {
-        // Get the new token from the updated state
-        const newState = store.getState();
-        return newState.Auth?.token || null;
-      } else {
-        return null;
-      }
-    }
-
+    // Just return the current token - let the API call handle 401 errors
     return accessToken;
   }
 

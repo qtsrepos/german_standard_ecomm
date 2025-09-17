@@ -191,13 +191,13 @@ const Banners = () => {
     } catch (err: any) {
       Notifications.error({ message: "Something went wrong!" });
     }
-    try {
-      const url = API.CART_GET_ALL;
-      const cartItems: any = await GET(url);
-      if (cartItems.status) {
-        dispatch(storeCart(cartItems.data));
-      }
-    } catch (err) {}
+    // try {
+    //   const url = API.CART_GET_ALL;
+    //   const cartItems: any = await GET(url);
+    //   if (cartItems.status) {
+    //     dispatch(storeCart(cartItems.data));
+    //   }
+    // } catch (err) {}
   };
 
   const CustomPrevArrow = ({ onClick }: any) => (

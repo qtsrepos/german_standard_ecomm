@@ -2,6 +2,50 @@ import API from "@/config/API";
 import { store } from "@/redux/store/store";
 import { message } from "antd";
 import { getValidAccessToken } from "./tokenRefresh";
+import { signOut } from "next-auth/react";
+import { clearReduxData } from "@/lib/clear_redux";
+
+// Helper function to handle API calls with direct logout on 401
+const makeApiCall = async (
+  url: string,
+  options: RequestInit
+): Promise<Response> => {
+  try {
+    const token = await getValidAccessToken();
+    const response = await fetch(API.BASE_URL + url, {
+      ...options,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token || ""}`,
+        ...options.headers,
+      },
+    });
+
+    // If we get a 401, directly log out the user
+    if (response.status === 401) {
+      console.log("🔒 Access token expired, logging out user...");
+      handleTokenExpiration();
+      throw new Error("Authentication failed. Please login again.");
+    }
+
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Helper function to handle token expiration
+const handleTokenExpiration = () => {
+  message.warning({
+    content: "Your session has expired. Please login again.",
+    duration: 2,
+    onClose: async () => {
+      await signOut({ callbackUrl: "/login" });
+      clearReduxData(store.dispatch);
+    },
+  });
+};
 
 const GET = async (
   url: string,
@@ -9,18 +53,13 @@ const GET = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = await getValidAccessToken();
     const queryParams = new URLSearchParams(params).toString();
     const URL = queryParams ? url + `?${queryParams}` : url;
-    const response = await fetch(API.BASE_URL + URL, {
+    const response = await makeApiCall(URL, {
       ...(signal && { signal }),
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token || ""}`,
-      },
     });
+    
     if (!response.ok) {
       const errorData = await response.json();
       const error = new Error(errorData.message || "Something went wrong");
@@ -39,17 +78,12 @@ const POST = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = await getValidAccessToken();
-    const response = await fetch(API.BASE_URL + url, {
+    const response = await makeApiCall(url, {
       ...(signal && { signal }),
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token ?? ""}`,
-      },
       body: JSON.stringify(body),
     });
+    
     if (!response.ok) {
       const errorData = await response.json();
       const error = new Error(errorData.message || "Something went wrong");
@@ -68,17 +102,12 @@ const PUT = async (
   signal: AbortSignal | null = null
 ) => {
   try {
-    const token = await getValidAccessToken();
-    const response = await fetch(API.BASE_URL + url, {
+    const response = await makeApiCall(url, {
       ...(signal && { signal }),
       method: "PUT",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token ?? ""}`,
-      },
       body: JSON.stringify(body),
     });
+    
     if (!response.ok) {
       const errorData = await response.json();
       const error = new Error(errorData.message || "Something went wrong");
@@ -121,16 +150,11 @@ const PATCH = async (
 
 const DELETE = async (url: string, signal: AbortSignal | null = null) => {
   try {
-    const token = await getValidAccessToken();
-    const response = await fetch(API.BASE_URL + url, {
+    const response = await makeApiCall(url, {
       ...(signal && { signal }),
       method: "DELETE",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token || ""}`,
-      },
     });
+    
     if (!response.ok) {
       const errorData = await response.json();
       const error = new Error(errorData.message || "Something went wrong");

@@ -53,20 +53,20 @@ function Checkout() {
     setOrderItems(array);
   };
 
-  const checkCart = async () => {
-    try {
-      if (User) {
-        const cartItems: any = await GET(API.CART_GET_ALL);
-        console.log('this is the cart data', cartItems)
-        if (cartItems.status) {
-          dispatch(storeCart(cartItems.data));
-          return;
-        }
-      }
-    } catch (error) {
-      console.log('error', error)
-    }
-  }
+  // const checkCart = async () => {
+  //   try {
+  //     if (User) {
+  //       const cartItems: any = await GET(API.CART_GET_ALL);
+  //       console.log('this is the cart data', cartItems)
+  //       if (cartItems.status) {
+  //         dispatch(storeCart(cartItems.data));
+  //         return;
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.log('error', error)
+  //   }
+  // }
 
   const PlaceOrder = async () => {
     try {
@@ -92,7 +92,7 @@ function Checkout() {
           setResponseData(response?.data);
 
           dispatch(clearCheckout());
-          loadCartItems();
+          // loadCartItems();
           setPaymentStatus(true);
         } else {
           Notifications["error"]({
@@ -116,26 +116,26 @@ function Checkout() {
         description: "",
       });
     } finally {
-      checkCart()
+      // checkCart()
       // window.history.replaceState({}, "", "/profile/orders");
     }
   };
   console.log("dfghjk", Checkout);
 
-  const loadCartItems = async () => {
-    try {
-      if (User?.data?.id) {
-        const cartItems: any = await GET(API.CART_GET_ALL);
-        if (cartItems.status) {
-          dispatch(storeCart(cartItems.data));
-          return;
-        } else {
-        }
-      }
-    } catch (err) {
-      return;
-    }
-  };
+  // const loadCartItems = async () => {
+  //   try {
+  //     if (User?.data?.id) {
+  //       const cartItems: any = await GET(API.CART_GET_ALL);
+  //       if (cartItems.status) {
+  //         dispatch(storeCart(cartItems.data));
+  //         return;
+  //       } else {
+  //       }
+  //     }
+  //   } catch (err) {
+  //     return;
+  //   }
+  // };
 
   return (
     <div className="Screen-box px-md-5">

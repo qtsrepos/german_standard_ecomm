@@ -24,6 +24,12 @@ type Props = {
   data: any;
   currentVariant: any;
   handleBuyNow: (val: any) => void;
+  handleAddToCart?: (quantity: number) => void;
+  handleAddToWishlist?: () => void;
+  bestRate?: any;
+  ratesLoading?: boolean;
+  productStock?: { unit: number; status: boolean };
+  stockLoading?: boolean;
 };
 
 function Description(props: Props) {
@@ -66,8 +72,7 @@ function Description(props: Props) {
   //   }
   // };
 
-  const availableQuantity =
-    props?.currentVariant?.units ?? props?.data?.unit ?? 0;
+  const availableQuantity = props?.productStock?.unit ?? props?.currentVariant?.units ?? props?.data?.unit ?? 0;
   const settings = useAppSelector(reduxSettings);
   const [Notifications, contextHolder] = notification.useNotification();
   const [quantity, setQuantity] = useState<number>(1);
@@ -87,10 +92,9 @@ function Description(props: Props) {
   );
 
   useEffect(() => {
-    const basePrice =
-      props?.currentVariant?.price ?? props?.data?.retail_rate ?? 0;
-    setTotalPrice(basePrice);
-  }, [quantity, props?.currentVariant, props?.data]);
+    const basePrice = props?.bestRate?.rate ?? props?.currentVariant?.price ?? props?.data?.retail_rate ?? 0;
+    setTotalPrice(basePrice * quantity);
+  }, [quantity, props?.bestRate, props?.currentVariant, props?.data]);
 
   useEffect(() => {
     if (props?.data?.pid) {
@@ -370,10 +374,30 @@ function Description(props: Props) {
       <div className=" justify-content-between align-items-center">
         <div className="d-flex fw-bold">
           <div className="ts-5 detail-head mt-4">
-            {new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: settings.currency ?? "INR",
-            }).format(totalPrice)}
+            {props?.ratesLoading ? (
+              <span className="text-muted">Loading prices...</span>
+            ) : props?.bestRate ? (
+              <div>
+                <div className="fw-bold">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: settings.currency ?? "INR",
+                  }).format(props.bestRate.rate)}
+                  <span className="text-muted small ms-1">/ {props.bestRate.unitName}</span>
+                </div>
+                <div className="small text-muted">
+                  Total: {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: settings.currency ?? "INR",
+                  }).format(totalPrice)}
+                </div>
+              </div>
+            ) : (
+              new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: settings.currency ?? "INR",
+              }).format(totalPrice)
+            )}
           </div>
         </div>
         <br />
@@ -395,12 +419,16 @@ function Description(props: Props) {
           </div>
 
           <br />
-          {/* {availableQuantity === 0 ? (
+          {props?.stockLoading ? (
+            <h5 className="text-muted">Checking stock...</h5>
+          ) : availableQuantity === 0 ? (
             <h5 className="text-danger">Currently Out of Stock</h5>
           ) : availableQuantity < quantity ? (
             <h5 className="text-danger">{`Only ${availableQuantity} units left`}</h5>
+          ) : availableQuantity <= 5 ? (
+            <h5 className="text-warning">{`Only ${availableQuantity} units left`}</h5>
           ) : null}
-          <br /> */}
+          <br />
           <div className="d-flex gap-2 align-items-center button-container">
             {/* {availableQuantity > 0 && (
           <Button
@@ -422,8 +450,12 @@ function Description(props: Props) {
                   router.push("/cart");
                 } else {
                   if (session?.token) {
-                    // Check for session token - use API
-                    addToCart(props?.data, quantity);
+                    // Use the new handler from parent component
+                    if (props?.handleAddToCart) {
+                      props.handleAddToCart(quantity);
+                    } else {
+                      addToCart(props?.data, quantity);
+                    }
                   } else {
                     // For non-logged in users - use Redux + localStorage via the LocalCartSlice
                     handleAddToLocalCart();
@@ -444,7 +476,12 @@ function Description(props: Props) {
           className="productDetails-text-btn1 ps-md-0"
           onClick={() => {
             if (session) {
-              AddWishlist();
+              // Use the new handler from parent component
+              if (props?.handleAddToWishlist) {
+                props.handleAddToWishlist();
+              } else {
+                AddWishlist();
+              }
             } else {
               router.push("/login");
             }
