@@ -1,0 +1,16 @@
+@use "../../../../config/styleVariable.scss" as global;
+
+.ant-card{
+border-radius: 2px !important;
+border: none !important;
+box-shadow: 0 0 4px rgba(0, 0, 0, 0.18) !important;
+}
+.ant-card:hover{
+    background-color: global.$primary2 !important;
+    .icon{
+    color: global.$primary !important;
+    }
+}
+.ant-card>div{
+    padding: 12px !important;
+}

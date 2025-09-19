@@ -1,0 +1,477 @@
+@use "../../../config/styleVariable.scss" as global;
+
+.homeScreen-loaderBox {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  margin-left: -10px;
+}
+
+.HomeScreen-BannerBox {
+  width: 100%;
+  overflow: hidden;
+  overflow: hidden;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    padding-top: 0px;
+  }
+}
+
+.HomeScreen-Banners {
+  width: 100%;
+  height: 560px;
+  border-radius: 30px;
+  background-color: rgb(235, 235, 235);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: relative;
+  // border-radius: 6px;
+  overflow: hidden;
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+    z-index: 1;
+  }
+  @media screen and (min-width: 768px) and (max-width: 1200px) {
+    height: 300px;
+    background-size: 100% 100%;
+    border-radius: 0px;
+    background-position: center;
+    &:before {
+      width: 40%;
+    }
+    
+  }
+
+  @media screen and (min-width: 200px) and (max-width: 768px) {
+    height: 160px;
+    background-size: 100% 100%;
+    border-radius: 0px;
+    &:before {
+      width: 40%;
+    }
+  }
+}
+
+.HomeScreen-BannersBox {
+  padding: 20px 30px;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
+  z-index: -1;
+  @media (max-width: 768px) {
+    width: 100%;
+  }
+}
+
+.Offers-box {
+  border: 1px solid grey;
+  padding: 20px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: 100%;
+}
+
+.Offers-img {
+  width: 100%;
+  height: 200px;
+
+  img {
+    height: 200px;
+    width: 100%;
+    object-fit: cover;
+  }
+}
+
+.HomeScreen-Bannertxt1 {
+  font-family: global.$Medium;
+  font-size: 14px;
+}
+
+.HomeScreen-Bannertxt2,
+.HomeScreen-Bannertxt3 {
+  position: relative;
+  font-family: global.$SemiBold;
+  color: white;
+  z-index: 2;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    font-size: 25px;
+  }
+}
+
+.HomeScreen-Bannertxt3 {
+  font-family: global.$Medium;
+  font-size: 20px;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    font-size: 14px;
+    /* Adjust as needed */
+  }
+}
+
+.homescreen-category-item {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 14px;
+  text-align: center;
+  font-family: global.$SemiBold;
+  font-size: 15px;
+  text-transform: capitalize;
+  width: 120px;
+  overflow: hidden;
+
+  img {
+    height: 100px;
+    width: 100px;
+    overflow: hidden;
+    border-radius: 100px;
+    border: 1px solid global.$grey6;
+    padding: 3px;
+    margin-bottom: 5px;
+    background-color: global.$grey3;
+  }
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    width: 80px;
+    font-size: 14px;
+
+    img {
+      height: 80px;
+      width: 80px;
+    }
+  }
+}
+
+.homescreen-category-arrows {
+  margin-bottom: 10px;
+  font-size: 35px;
+  color: global.$grey7;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    display: none;
+  }
+}
+
+.HomeSCreen-space {
+  padding-top: 20px;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    padding-top: 10px;
+  }
+}
+
+.Homescreen-TopSellingStore {
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    margin: 15px;
+  }
+}
+
+.homescreen-txt1 {
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    padding: 0px;
+    display: none;
+  }
+}
+
+.Homescreen-txt2 {
+  padding-top: 30px;
+  margin-bottom: 20px;
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    padding-top: 0px;
+    margin-left: 0px;
+    font-size: 20px;
+    border-bottom: 1px solid rgb(244, 244, 244);
+  }
+}
+
+.Homescreen-txt3 {
+  color: global.$primary;
+}
+
+.flex-parent {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+@media (min-width: 992px) {
+  .col-md-3.banner {
+      flex: 0 0 auto;
+      width: 20%;
+  }
+}
+
+.card-div{
+  height: 312px;
+  @media( min-width: 1440px) {
+  height: 395px;
+  }
+}
+.slick-dots li button:before{
+ 
+  content: "" !important;
+  border: 1px solid global.$primary !important;
+  border-radius: 50%;
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.head-div{
+  display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    // @media (max-width:1024px) {
+      flex-direction: column;
+    // }
+}
+
+// .head-div-btn{
+//   overflow: scroll;
+//   display: flex;
+// }
+
+.head-div-btn{
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  position: relative;
+  padding-bottom: 5px;
+  padding-top: 10px;
+  border-radius: 8px;
+
+  @media (max-width:1024px) {
+    width: 100%;
+  }
+  &::-webkit-scrollbar {
+  display: none;
+}
+scrollbar-width: none;
+-ms-overflow-style: none;
+}
+
+.category::-webkit-scrollbar {
+  height: 1px;
+}
+
+.category::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+
+}
+
+.category::-webkit-scrollbar-thumb {
+  transition: background-color 0.3s ease;
+}
+
+.category::-webkit-scrollbar-thumb:hover {
+  background-color: global.$grey2;
+  transition: 1s;
+}
+
+.head-btn{
+  border: none;
+    padding: 9px 14px;
+    border-radius: 20px;
+    background: global.$grey3;
+    color: global.$grey7;
+}
+
+.head-btn.active{
+  color: global.$backround;
+  background: linear-gradient(90deg,rgba(245, 231, 34, 1) 0%, global.$primary 42%);
+}
+.head-btn:hover{
+  color: global.$backround;
+  background: linear-gradient(90deg,rgba(245, 231, 34, 1) 0%, global.$primary 42%);
+}
+
+.details-wrapper{
+  height: 100%;
+  padding: 20px;
+}
+
+.scroll-button2 {
+  display: block;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: global.$grey3;
+  color: black;
+  border: none;
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  z-index: 100; /* Increased z-index to ensure it stays above cards */
+  transition: transform 0.3s ease, opacity 0.3s;
+  opacity: 1;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  @media (max-width: 769px) {
+    width: 35px;
+  height: 35px;
+  }
+}
+
+.scroll-button2.left {
+  left: 8px;
+  transform: translateY(-50%);
+}
+
+.scroll-button2.right {
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.image-container>img{
+@media (max-width:769px) {
+  width: 300px;
+  height: 300px;
+}
+}
+.text-container>h1{
+  @media (max-width:769px) {
+    font-size: 28px !important;
+    padding: 0 !important;
+  }
+  
+}
+
+.text-container>p{
+  @media (max-width:769px) {
+    font-size: 14px !important;
+  }
+  
+}
+
+.custom-button {
+  background: transparent !important;
+  border: 2px solid global.$grey3 !important;
+  color: global.$backround !important;
+  font-weight: bold;
+  border-radius: 0px !important;
+}
+.custom-button:hover {
+  background: #ff5733 !important;
+  color: white !important;
+}
+
+
+
+.head-div {
+  width: 100%;
+}
+
+.head-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: nowrap;
+  width: 100%;
+   @media (max-width:1024px) {
+      flex-direction: column;
+    }
+
+}
+
+.Horizontal-Heading1 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  white-space: nowrap;
+}
+
+.head-div-btn1 {
+  display: flex;
+  gap: 10px; /* Gap between buttons */
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 5px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc transparent;
+  width: 780px; /* Fits 6 buttons: 6 * (120px button width + 10px gap) - 10px (last gap removed) */
+}
+
+.head-div-btn1::-webkit-scrollbar {
+  height: 1px !important;
+}
+
+.head-div-btn1::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.head-div-btn1::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.head-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  background-color: #f5f5f5;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  // width: 120px; /* Fixed width for each button */
+  text-align: center; /* Center the text */
+}
+
+.head-btn.active {
+  border: none;
+    padding: 9px 14px;
+    border-radius: 20px;
+    background: global.$grey3;
+    color: global.$grey7;
+}
+
+.head-btn.active{
+  color: global.$backround;
+  background: linear-gradient(90deg,rgba(245, 231, 34, 1) 0%, global.$primary 42%);
+}
+.head-btn:hover{
+  color: global.$backround;
+  background: linear-gradient(90deg,rgba(245, 231, 34, 1) 0%, global.$primary 42%);
+}
+
+/* Responsive adjustments */
+// @media (max-width: 1025px) {
+  .head-div-btn1 {
+    width: 100%; /* Fits 4 buttons on smaller screens */
+    &::-webkit-scrollbar {
+  display: none;
+}
+scrollbar-width: none;
+-ms-overflow-style: none;
+  // }
+}
+
+// @media (max-width: 480px) {
+//   .head-div-btn1 {
+//     width: 390px; /* Fits 3 buttons on mobile */
+//   }
+// }
+
+.slick-track{
+  min-width: 3240px !important;
+}

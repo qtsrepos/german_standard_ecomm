@@ -1,0 +1,356 @@
+@use "../../../config/styleVariable.scss" as vars;
+
+.dashboard-Header {
+  height: 8vh;
+  background-color: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 0px 15px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  border-bottom: 1px solid rgb(232, 232, 232);
+  color: rgb(44, 44, 44);
+}
+
+.dashboard-Layout {
+  height: 100vh;
+  padding: 10px 15px;
+  padding-top: 8.5vh;
+  padding-bottom: 20px;
+  overflow: scroll;
+  background-color: #f6f6f6;
+  overflow-x: hidden;
+  .ant-table {
+    border: 1px solid rgb(238, 238, 238);
+    overflow: hidden;
+  }
+  .ant-table-thead .ant-table-cell {
+    background-color: #fff !important;
+    border-bottom: 1px solid rgb(238, 238, 238);
+    font-size: 15px;
+  }
+}
+
+.dashboard-HeaderBox1 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-HeaderBox2 {
+  border: 1px solid rgb(0, 199, 46);
+  padding: 1px 5px 0px 1px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  img {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    margin-left: 1px;
+  }
+  &:hover {
+    border: 1px solid rgb(0, 0, 0);
+  }
+}
+
+.dashboard-HeaderBox3 {
+  cursor: pointer;
+  padding: 8px 15px;
+  border-radius: 100px;
+  &:hover {
+    background-color: rgb(244, 244, 244);
+    color: vars.$primary;
+  }
+}
+
+.dashboard-HeaderBox4 {
+  width: 70px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  -ms-text-overflow: ellipsis;
+  display: block;
+  font-size: 14px;
+}
+
+.dashboard-Headertext1 {
+  font-size: 14px;
+  line-height: 16px;
+  font-family: vars.$SemiBold;
+}
+
+.dashboard-Headertext2 {
+  font-size: 10px;
+  color: grey;
+  font-weight: 100;
+}
+
+.dashboard-HeaderBox5 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-family: vars.$Bold;
+  line-height: 18px;
+  width: 230px;
+  img {
+    height: 40px;
+    width: 40px;
+    object-fit: contain;
+    border-radius: 10px;
+  }
+}
+
+.dashboard-Headertext3 {
+  font-size: 10px;
+  color: grey;
+}
+
+.dashboard-SideBar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-right: 1px solid rgb(232, 232, 232);
+  padding: 0px 0px 10px 0px;
+  color: rgb(44, 44, 44);
+}
+
+.dashboard-SideBarBox1 {
+  flex: 1;
+  overflow: scroll;
+  overflow-x: hidden;
+}
+
+.dashboard-SideBarDevider {
+  border-bottom: 1px solid rgb(235, 235, 235);
+  padding: 10px 20px;
+  color: gray;
+  font-size: 12px;
+}
+
+.dashboard-SideBarItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  font-size: 18px;
+  color: rgb(97, 97, 97);
+  &.active {
+    border-left: 3px solid vars.$primary;
+    background-color: vars.$primary2;
+    color: vars.$primary;
+  }
+  &:hover {
+    background-color: rgb(243, 243, 243);
+    color: #000;
+  }
+}
+
+.ashboard-SideBartext1 {
+  font-size: 14px;
+  color: rgb(44, 44, 44);
+}
+
+.dashboard-ProfilePopover {
+  min-width: 200px;
+  color: rgb(44, 44, 44);
+}
+
+.dashboard-ProfilePopoverItem {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 10px;
+  img {
+    width: 70px;
+    height: 70px;
+    border-radius: 100px;
+  }
+  .text1 {
+    font-size: 16px;
+    font-family: vars.$SemiBold;
+  }
+  .text2 {
+    font-size: 12px;
+    font-family: vars.$Medium;
+    color: gray;
+    margin-bottom: 5px;
+  }
+}
+
+.dashboard-ProfilePopoverItem2 {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 5px;
+  gap: 10px;
+  border-top: 1px solid rgb(243, 243, 243);
+  &:hover {
+    background-color: rgb(243, 243, 243);
+  }
+}
+
+.dashboard-pageHeader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(208, 200, 200, 0.541);
+  margin-bottom: 12px;
+  color: rgb(44, 44, 44);
+}
+
+.dashboard-pageHeaderBox {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dashboard-pageHeadertxt1 {
+  font-size: 22px;
+  font-family: vars.$SemiBold;
+  line-height: 25px;
+}
+
+.dashboard-pageHeadertxt2 {
+  font-size: 12px;
+  font-family: vars.$Regular;
+  color: gray;
+}
+
+.dashboard-pageHeaderBox2 {
+  background-color: #fff;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid #fff;
+  cursor: pointer;
+  margin-right: 10px;
+  &:hover {
+    color: vars.$primary;
+    border: 1px solid vars.$primary;
+  }
+}
+
+.dashboard-Loading {
+  height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-img {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  border: 1px dashed rgb(206, 206, 206);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  img {
+    width: 35px;
+    height: 35px;
+    border-radius: 3px;
+  }
+}
+
+.table-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.table-pagination {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.table-desctext {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* number of lines to show */
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.DashboardAdmin-Box {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.DashboardAdmin-text1 {
+  font-size: 22px;
+  font-family: vars.$SemiBold;
+}
+
+.DashboardAdmin-text2 {
+  font-size: 14px;
+  color: gray;
+}
+
+.DashboardAdmin-card {
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid rgb(238, 238, 238);
+}
+
+.DashboardAdmin-card-text1 {
+  font-size: 15px;
+  font-family: vars.$Regular;
+  color: rgb(85, 85, 85);
+}
+
+.DashboardAdmin-card-text2 {
+  font-size: 18px;
+  font-family: vars.$Bold;
+  color: #000;
+}
+
+.DashboardAdmin-card-text3 {
+  font-size: 12px;
+  color: gray;
+}
+
+.DashboardAdmin-card-icons {
+  font-size: 24px;
+  background-color: rgb(240, 240, 240);
+  height: 35px;
+  width: 35px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-lable {
+  font-size: 13px;
+  margin-bottom: 5px;
+  color: rgb(0, 0, 0);
+  font-family: vars.$Medium;
+}

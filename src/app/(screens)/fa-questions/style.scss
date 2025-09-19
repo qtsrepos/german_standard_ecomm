@@ -1,0 +1,99 @@
+// Root Styles
+.page-Box {
+    padding: 40px 0;
+    background-color: #f9f9f9;
+  }
+  
+  // Breadcrumb Styling
+  .breadcrumb {
+    font-size: 14px;
+    color: #666;
+  }
+  
+  // FAQ Heading
+  .page-text1 {
+    font-size: 28px;
+    // font-weight: bold;
+    color: #333;
+  }
+  
+  // Question Titles (Collapse Headers)
+  .page-text2 {
+    font-size: 18px;
+    // font-weight: 600;
+    margin: 0;
+  }
+  
+  // FAQ Answer Text
+  .page-text3 {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+  
+    li {
+      margin-bottom: 10px;
+    }
+  
+    a {
+      color: #007bff;
+      text-decoration: none;
+  
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  // Sticky Sidebar
+  .page-stickeyBox {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 100px;
+  
+    .Footer-text2 {
+      font-size: 14px;
+      color: #333;
+      font-weight: 500;
+      margin-bottom: 10px;
+      
+      a {
+        text-decoration: none;
+        color: black;
+  
+        &:hover {
+          color: black;
+        }
+      }
+  
+      hr {
+        border: 0;
+        height: 1px;
+        background: #ddd;
+        margin: 10px 0;
+      }
+    }
+  }
+  
+  // Responsive Design
+  @media (max-width: 768px) {
+    .page-text1 {
+      font-size: 24px;
+    }
+  
+    .page-text2 {
+      font-size: 16px;
+    }
+  
+    .page-text3 {
+      font-size: 13px;
+    }
+  
+    .page-stickeyBox {
+      position: static;
+      margin-top: 20px;
+    }
+  }
+  

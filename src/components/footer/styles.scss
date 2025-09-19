@@ -1,0 +1,186 @@
+@use "../../config/styleVariable.scss" as vars;
+
+.Footer {
+  width: 100%;
+  background-color: vars.$backround;
+  padding-top: 10px;
+  margin-top: 10px;
+  // border-top: 1px solid #E6E6E6;
+  margin-bottom: 70px;
+
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    padding: 10px;
+    padding-top: 30px;
+  }
+}
+
+.Footer-Box1 {
+  text-align: center;
+  // border-top: 1px solid rgb(230, 230, 230);
+  font-size: 14px;
+  padding: 10px;
+  font-weight: 500;
+  color: vars.$grey2;
+}
+
+.Footer_logoBox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-size: 30px;
+  font-family: vars.$Bold;
+  color: #000;
+  text-decoration: none;
+}
+
+.Footer_logo {
+  // width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: fill;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.Footer_img {
+  object-fit: fill;
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgb(219, 219, 219);
+
+  @media screen and (max-width: 768px) {
+    width: 90%;
+    height: 90%;
+  }
+}
+
+.Footer-text1 {
+  font-size: 18px;
+  font-family: vars.$Bold;
+  padding-bottom: 15px;
+  padding-top: 10px;
+  @media screen and (min-width: 320px) and (max-width: 768px) {
+    margin-top: 10px;
+  }
+}
+
+.Footer-text2 {
+  margin-bottom: 10px;
+  font-family: vars.$SemiBold;
+  font-size: 14px;
+  text-decoration: none;
+  a {
+    text-decoration: none;
+    color: rgb(89, 89, 89);
+    transition: .5s;
+    &:hover {
+      color: vars.$primary;
+      // border-bottom: 1px solid vars.$primary;
+      text-decoration: none;
+    }
+  }
+}
+
+
+.Footer-text3 {
+  font-size: 13px;
+  font-family: vars.$Medium;
+  color: #000;
+}
+
+.Footer-icon {
+  font-size: 28px;
+  a {
+    text-decoration: none;
+    color: rgb(59, 59, 59);
+    // &:hover {
+    //   color: vars.$primary;
+    // }
+  }
+}
+
+.Footer_icon2 {
+  // height: 40px;
+  object-fit: contain;
+  // border: 1px solid rgb(224, 224, 224);
+  width: 100%;
+  // padding: 5px;
+  border-radius: 10px;
+  background-color: #fff;
+}
+
+
+.Footer-mail-text {
+
+  @media screen and (min-width : 990px) and (max-width : 1200px) {
+        font-size: 11px;
+  }
+}
+
+.contact-foot{
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  color: vars.$grey2;
+  
+}
+
+.Footer-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  gap:10px;
+  margin: 0 6px;
+}
+.Footer-icon a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  // width: 100%;
+  // height: 100%;
+  color: white;
+  text-decoration: none;
+}
+.facebook-bg { background-color: #3b5998;
+  transition: .5s;
+&:hover {
+    background-color: #1e3e84;
+  }
+}
+.twitter-bg { background-color: #1da1f2; 
+  transition: .5s;
+  &:hover {
+    background-color: rgb(28, 59, 128);
+  }
+}
+.email-bg { background-color: #f4a261; 
+  transition: .5s;
+  &:hover {
+    background-color: #c57331;
+  }
+}
+.pinterest-bg { background-color: #e60023;
+  transition: .5s;
+  &:hover {
+  background-color: #b6001b;
+}
+} 
+.linkedin-bg { background-color: #0077b5; 
+  transition: .5s;
+  &:hover {
+    background-color: rgb(37, 69, 137);
+  }
+}
+.telegram-bg { background-color: #0088cc; 
+  transition: .5s;
+  &:hover {
+    background-color: rgb(39, 67, 128);
+  }
+}
