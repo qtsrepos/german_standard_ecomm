@@ -230,12 +230,12 @@ function Description(props: Props) {
         be: 1, // Business Entity ID
         customer: customerId, // Customer ID from JWT token
         deliveryAddress: "Default delivery address", // TODO: Get from user profile or make it required
-        eventName: null, // Optional event name
+        eventName: undefined, // Optional event name
         remarks: `Order created via Buy Now for ${props?.data?.name || props?.data?.Name}`,
         discountType: 0, // No discount
         payTerms: 0, // Default payment terms
-        discountCouponRef: null, // No coupon
-        discountRef: null, // No discount campaign
+        discountCouponRef: undefined, // No coupon
+        discountRef: undefined, // No discount campaign
         sampleRequestBy: 0, // Not a sample request
         deliveryTerms: "Standard delivery",
         deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
@@ -252,7 +252,7 @@ function Description(props: Props) {
             addcharges: 0, // Extra charges
             discount: 0, // Discount percentage
             discountAmt: 0, // Discount amount
-            discountRemarks: null, // No discount remarks
+            discountRemarks: undefined, // No discount remarks
             remarks: `${props?.data?.name || props?.data?.Name} - Buy Now order` // Item-level remarks
           }
         ]
@@ -350,14 +350,23 @@ function Description(props: Props) {
       const cartRequest = {
         transId: 0, // 0 for new cart item
         date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-        customer: customerId, // Dynamic customer ID from JWT token
+        customer: customerId, // Dynamic customer ID from JWT token (nameid)
         warehouse: 2, // Configurable warehouse (default: 2)
-        product: productId,
-        qty: quantity,
-        rate: rate,
+        remarks: "Add to cart", // Required field
+        discountType: 0, // Required field - no discount
+        discountCouponRef: "", // Required field - no coupon
+        discountRef: "", // Required field - no discount reference
+        sampleRequestedBy: 0, // Required field - not a sample
+        product: Number(productId), // Product ID
+        qty: 1, // Always default to 1 as requested
+        rate: rate, // Unit price
         unit: 1, // Default unit
-        totalRate: rate * quantity,
-        be: 1 // Configurable Business Entity (default: 1)
+        totalRate: rate * 1, // rate * qty (always rate * 1)
+        addCharges: 0, // Required field - no additional charges
+        discount: 0, // Required field - no discount percentage
+        discountAmt: 0, // Required field - no discount amount
+        discountRemarks: "", // Required field - no discount remarks
+        be: 0 // Business Entity (changed from 1 to 0)
       };
 
       console.log("🛒 Add to Cart - Request body:", cartRequest);
@@ -374,16 +383,19 @@ function Description(props: Props) {
 
       // Refresh cart data
       try {
-        const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+        const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
         if (cartSummary.transactions && cartSummary.transactions.length > 0) {
           // Transform German Standard cart data to match existing format
           const transformedCart:any = cartSummary.transactions.map((item: any) => ({
             id: item.TransId,
-            productId: item.productId || 1,
+            productId: item.product || item.productId || 1,
             quantity: item.qty || 1,
             price: item.rate || 0,
-            totalPrice: item.totalRate || 0,
-            // Add other required fields as needed
+            totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
+            name: `Product ${item.product || item.productId}`, // TODO: Get actual product name
+            image: "/images/no-image.jpg", // TODO: Get actual product image
+            unit: 999, // Default available units
+            variantId: null // No variants for now
           }));
           dispatch(storeCart(transformedCart));
         }

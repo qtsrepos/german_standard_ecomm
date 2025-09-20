@@ -1520,16 +1520,25 @@ function CartPage() {
       for (const item of mergedCart) {
         try {
           const cartRequest = {
-            transId: item.id || 0, // 0 for new cart item
-            date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
+            transId: item.id || 0,
+            date: new Date().toISOString().split('T')[0],
             customer: 1, // You may need to get this from session
-            warehouse: 1, // Default warehouse
+            warehouse: 2,
+            remarks: "Merge local cart to backend",
+            discountType: 0,
+            discountCouponRef: "",
+            discountRef: "",
+            sampleRequestedBy: 0,
             product: item.productId,
-            qty: item.quantity,
+            qty: 1, // Always default to 1
             rate: item.price || 0,
-            unit: 1, // Default unit
-            totalRate: (item.price || 0) * item.quantity,
-            be: 1 // Business Entity
+            unit: 1,
+            totalRate: (item.price || 0) * 1,
+            addCharges: 0,
+            discount: 0,
+            discountAmt: 0,
+            discountRemarks: "",
+            be: 0
           };
           
           await germanStandardApi.upsertCart(cartRequest);
@@ -1712,13 +1721,22 @@ function CartPage() {
             transId: item.id || 0,
             date: new Date().toISOString().split('T')[0],
             customer: 1, // You may need to get this from session
-            warehouse: 1,
+            warehouse: 2,
+            remarks: "Update cart quantity",
+            discountType: 0,
+            discountCouponRef: "",
+            discountRef: "",
+            sampleRequestedBy: 0,
             product: item.productId,
-            qty: newQuantity,
+            qty: 1, // Always default to 1
             rate: item.price || 0,
             unit: 1,
-            totalRate: (item.price || 0) * newQuantity,
-            be: 1
+            totalRate: (item.price || 0) * 1,
+            addCharges: 0,
+            discount: 0,
+            discountAmt: 0,
+            discountRemarks: "",
+            be: 0
           };
           
           await germanStandardApi.upsertCart(cartRequest);
@@ -1853,16 +1871,25 @@ function CartPage() {
   const addToCartGS = async (productId: number, quantity: number, price: number) => {
     try {
       const cartRequest = {
-        transId: 0, // New cart item
-        date: new Date().toISOString().split('T')[0], // Today's date
-        customer: (session?.user as any)?.id || 1, // User ID
-        warehouse: 1, // Default warehouse
+        transId: 0,
+        date: new Date().toISOString().split('T')[0],
+        customer: (session?.user as any)?.id || 1,
+        warehouse: 2,
+        remarks: "Add to cart from cart page",
+        discountType: 0,
+        discountCouponRef: "",
+        discountRef: "",
+        sampleRequestedBy: 0,
         product: productId,
-        qty: quantity,
+        qty: 1, // Always default to 1
         rate: price,
-        unit: 1, // Default unit
-        totalRate: price * quantity,
-        be: 1 // Business Entity
+        unit: 1,
+        totalRate: price * 1,
+        addCharges: 0,
+        discount: 0,
+        discountAmt: 0,
+        discountRemarks: "",
+        be: 0
       };
 
       const response = await germanStandardApi.upsertCart(cartRequest);

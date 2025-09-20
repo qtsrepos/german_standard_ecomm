@@ -392,6 +392,7 @@ import "./styles.scss";
 import SummaryCardDrawer from "@/app/(user)/cart/_components/summeryCardDrawer";
 import CartItemDrawer from "@/app/(user)/cart/_components/cartItemsDrawer";
 import { germanStandardApi } from "@/services/germanStandardApi";
+import { getCustomerIdFromSession } from "@/shared/helpers/jwtUtils";
 
 interface CartDrawerProps {
   showDrawer: boolean;
@@ -488,14 +489,23 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           const cartRequest = {
             transId: item.id || 0, // 0 for new cart item
             date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-            customer: 1, // You may need to get this from session
-            warehouse: 1, // Default warehouse
-            product: item.productId,
-            qty: item.quantity,
+            customer: 1, // TODO: Get from session JWT token
+            warehouse: 2, // Configurable warehouse (default: 2)
+            remarks: "Cart sync", // Required field
+            discountType: 0, // Required field - no discount
+            discountCouponRef: "", // Required field - no coupon
+            discountRef: "", // Required field - no discount reference
+            sampleRequestedBy: 0, // Required field - not a sample
+            product: Number(item.productId),
+            qty: 1, // Always default to 1 as requested
             rate: item.price || 0,
             unit: 1, // Default unit
-            totalRate: (item.price || 0) * item.quantity,
-            be: 1 // Business Entity
+            totalRate: (item.price || 0) * 1, // rate * qty (always rate * 1)
+            addCharges: 0, // Required field - no additional charges
+            discount: 0, // Required field - no discount percentage
+            discountAmt: 0, // Required field - no discount amount
+            discountRemarks: "", // Required field - no discount remarks
+            be: 0 // Business Entity (changed from 1 to 0)
           };
           
           await germanStandardApi.upsertCart(cartRequest);
@@ -523,27 +533,46 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     try {
       setLoading(true);
       if (session) {
+        // Get customer ID from session token
+        const customerId = getCustomerIdFromSession(session);
+        if (!customerId) {
+          console.error("CartDrawer: Unable to get customer ID from session");
+          dispatch(storeCart([]));
+          return;
+        }
+
         // Use German Standard API for cart data
         try {
-          const cartSummary = await germanStandardApi.getCartSummary(1, true, 1, 100);
+          console.log("🔄 CartDrawer: Loading cart data for customer:", customerId);
+          const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
+
           if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+            console.log("✅ CartDrawer: Found", cartSummary.transactions.length, "cart items");
             // Transform German Standard cart data to match existing format
             const transformedCart = cartSummary.transactions.map((item: any) => ({
               id: item.TransId,
-              productId: item.productId || 1, // You may need to get this from transaction details
+              productId: item.product || item.productId || 1,
               quantity: item.qty || 1,
               price: item.rate || 0,
-              totalPrice: item.totalRate || 0,
-              // Add other required fields as needed
+              totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
+              name: `Product ${item.product || item.productId}`, // TODO: Get actual product name
+              image: "/images/no-image.jpg", // TODO: Get actual product image
+              unit: 999, // Default available units
+              variantId: null // No variants for now
             }));
-            await mergeLocalCartWithBackend(transformedCart);
+
+            dispatch(storeCart(transformedCart));
+            console.log("🛒 CartDrawer: Cart state updated with", transformedCart.length, "items");
           } else {
-            await mergeLocalCartWithBackend([]);
+            console.log("📭 CartDrawer: No cart items found for customer");
+            dispatch(storeCart([]));
           }
         } catch (error) {
-          console.error("Error fetching cart from German Standard API:", error);
-          await mergeLocalCartWithBackend([]);
+          console.error("❌ CartDrawer: Error fetching cart from German Standard API:", error);
+          dispatch(storeCart([]));
         }
+      } else {
+        console.log("👤 CartDrawer: User not logged in, using local cart");
       }
 
       // if (session) {
@@ -560,12 +589,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
       // }
 
     } catch (err) {
+      console.error("❌ CartDrawer: Critical error in loadData:", err);
       notification.error({
-        message: "Something went wrong. Showing cached cart data.",
+        message: "Failed to load cart data. Please refresh the page.",
       });
-      if (session) {
-        await mergeLocalCartWithBackend(Cart.items || []);
-      }
+      // Keep existing cart data in case of critical error
+      // dispatch(storeCart(Cart.items || []));
     } finally {
       setLoading(false);
     }
@@ -634,14 +663,23 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           const cartRequest = {
             transId: item.id || 0,
             date: new Date().toISOString().split('T')[0],
-            customer: 1, // You may need to get this from session
-            warehouse: 1,
-            product: item.productId,
-            qty: newQuantity,
+            customer: 1, // TODO: Get from session JWT token
+            warehouse: 2, // Configurable warehouse (default: 2)
+            remarks: "Quantity update", // Required field
+            discountType: 0, // Required field - no discount
+            discountCouponRef: "", // Required field - no coupon
+            discountRef: "", // Required field - no discount reference
+            sampleRequestedBy: 0, // Required field - not a sample
+            product: Number(item.productId),
+            qty: 1, // Always default to 1 as requested
             rate: item.price || 0,
             unit: 1,
-            totalRate: (item.price || 0) * newQuantity,
-            be: 1
+            totalRate: (item.price || 0) * 1, // rate * qty (always rate * 1)
+            addCharges: 0, // Required field - no additional charges
+            discount: 0, // Required field - no discount percentage
+            discountAmt: 0, // Required field - no discount amount
+            discountRemarks: "", // Required field - no discount remarks
+            be: 0 // Business Entity (changed from 1 to 0)
           };
           
           await germanStandardApi.upsertCart(cartRequest);

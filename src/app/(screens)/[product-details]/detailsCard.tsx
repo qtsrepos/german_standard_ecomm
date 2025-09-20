@@ -19,6 +19,9 @@ import RelatedProducts from "./_components/relatedProducts";
 import Variants from "./_components/variants";
 import { getProductRates, getBestProductRate, ProductRate } from "@/util/productRatesApi";
 import { germanStandardApi } from "@/services/germanStandardApi";
+import { useDispatch, useSelector } from "react-redux";
+import { storeCart } from "@/redux/slice/cartSlice";
+import { message } from "antd";
 
 function DetailsCard(props: any) {  //to-do
   //functionality of cart,buy now,favourite
@@ -27,6 +30,8 @@ function DetailsCard(props: any) {  //to-do
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: session }: any = useSession();
+  const dispatch = useDispatch();
+  const Cart = useSelector((state: any) => state.Cart);
   //constant values
   const vid = searchParams.get("vid");
   //states
@@ -208,6 +213,40 @@ function DetailsCard(props: any) {  //to-do
     }
   };
 
+  // Helper function to refresh cart data from API
+  const refreshCartFromAPI = async () => {
+    try {
+      const customerId = getCustomerIdFromSession(session);
+      if (!customerId) return;
+
+      console.log("🔄 DetailCard: Refreshing cart from API...");
+
+      const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
+
+      if (cartSummary.transactions && cartSummary.transactions.length > 0) {
+        // Transform German Standard cart data to match existing format
+        const transformedCart = cartSummary.transactions.map((item: any) => ({
+          id: item.TransId,
+          productId: item.product || item.productId || 1,
+          quantity: item.qty || 1,
+          price: item.rate || 0,
+          totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
+          name: `Product ${item.product || item.productId}`, // You may need to enhance this
+          image: "/images/no-image.jpg", // Placeholder image
+          unit: 999 // Default stock
+        }));
+
+        console.log("✅ DetailCard: Cart updated with", transformedCart.length, "items");
+        dispatch(storeCart(transformedCart));
+      } else {
+        console.log("📭 DetailCard: No cart items found");
+        dispatch(storeCart([]));
+      }
+    } catch (error) {
+      console.error("❌ DetailCard: Error refreshing cart:", error);
+    }
+  };
+
   const handleAddToCart = async (quantity: number = 1) => {
     if (!session?.token) {
       router.push("/login");
@@ -231,14 +270,23 @@ function DetailsCard(props: any) {  //to-do
       const cartRequest = {
         transId: 0, // 0 for new cart item
         date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-        customer: customerId, // Dynamic customer ID from JWT token
+        customer: customerId, // Dynamic customer ID from JWT token (nameid)
         warehouse: 2, // Configurable warehouse (default: 2)
-        product: Number(productId),
-        qty: quantity,
-        rate: rate,
+        remarks: "Add to cart", // Required field
+        discountType: 0, // Required field - no discount
+        discountCouponRef: "", // Required field - no coupon
+        discountRef: "", // Required field - no discount reference
+        sampleRequestedBy: 0, // Required field - not a sample
+        product: Number(productId), // Product ID
+        qty: 1, // Always default to 1 as requested
+        rate: rate, // Unit price
         unit: 1, // Default unit
-        totalRate: rate * quantity,
-        be: 1 // Configurable Business Entity (default: 1)
+        totalRate: rate * 1, // rate * qty (always rate * 1)
+        addCharges: 0, // Required field - no additional charges
+        discount: 0, // Required field - no discount percentage
+        discountAmt: 0, // Required field - no discount amount
+        discountRemarks: "", // Required field - no discount remarks
+        be: 0 // Business Entity (changed from 1 to 0)
       };
 
       console.log("🛒 DetailCard: Adding to cart with request:", cartRequest);
@@ -246,8 +294,22 @@ function DetailsCard(props: any) {  //to-do
       const response = await germanStandardApi.upsertCart(cartRequest);
 
       console.log("Product added to cart successfully:", response);
+
+      // Update Redux cart state after successful API call
+      await refreshCartFromAPI();
+
+      // Show success message to user
+      message.success({
+        content: "Product added to cart successfully!",
+        duration: 3,
+      });
+
     } catch (error) {
       console.error("Error adding to cart:", error);
+      message.error({
+        content: "Failed to add product to cart. Please try again.",
+        duration: 3,
+      });
     }
   };
 

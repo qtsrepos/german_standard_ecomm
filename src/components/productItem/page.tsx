@@ -354,12 +354,12 @@ import {
   decreaseLocalCartQuantity,
   increaseLocalCartQuantity,
 } from "@/redux/slice/localcartSlice";
-import API from "@/config/API";
-import { POST } from "@/util/apicall";
 import { useSession } from "next-auth/react";
-import { CiHeart, CiSearch, CiShoppingCart, CiShuffle } from "react-icons/ci";
+import { CiSearch, CiShoppingCart } from "react-icons/ci";
 import { getProductRates, getBestProductRate, ProductRate } from "@/util/productRatesApi";
 import { germanStandardApi } from "@/services/germanStandardApi";
+import { getCustomerIdFromSession } from "@/shared/helpers/jwtUtils";
+import { storeCart } from "@/redux/slice/cartSlice";
 
 function ProductItem(props: any) {
   const [isHovered, setIsHovered] = useState(false); // Added state for hover
@@ -678,49 +678,113 @@ function ProductItem(props: any) {
       return;
     }
 
-    // Determine which API to use based on data format
-    const isGermanStandardFormat = props?.item?.Id; // Check if it's German Standard API format
-    
-    let obj, url;
-    
-    if (isGermanStandardFormat) {
-      // German Standard API format
-      obj = {
-        product: product.id,
-        qty: quantity,
-        headerId: 0,
-        voucherType: 0,
-      };
-      url = API.GERMAN_STANDARD_UPSERT_CART;
-    } else {
-      // New format
-      obj = {
-        productId: product.id,
-        quantity: quantity,
-        variantId: null,
-      };
-      url = API.GERMAN_STANDARD_UPSERT_CART; // Using same endpoint for now
-    }
-
     try {
-      const newCart: any = await POST(url, obj);
-      if (isGermanStandardFormat) {
-        if (newCart.status === "Success") {
-          Notifications.success({ message: "Product added to cart successfully" });
-        } else {
-          Notifications.error({ message: newCart?.message || "Failed to add to cart" });
-        }
+      // ✅ FIXED: Use German Standard API directly instead of POST with full URL
+      console.log("🛒 ProductItem - Adding to cart:", {
+        productId: product.id,
+        quantity,
+        productName: product.name
+      });
+
+      // Extract customer ID from session
+      const customerId = getCustomerIdFromSession(session);
+      if (!customerId) {
+        notification.error({ message: "Please login to add items to cart" });
+        return;
+      }
+
+      // Prepare cart request for German Standard API
+      const currentDate = new Date().toISOString().split('T')[0];
+      const cartRequest = {
+        transId: 0, // 0 for new cart item
+        date: currentDate,
+        customer: customerId,
+        warehouse: 2, // Default warehouse
+        remarks: `Added from product page - ${product.name}`,
+        discountType: 0,
+        discountCouponRef: "",
+        discountRef: "",
+        sampleRequestedBy: 0,
+        product: Number(product.id),
+        qty: quantity,
+        rate: product.price || 0,
+        unit: 1, // Default unit
+        totalRate: (product.price || 0) * quantity,
+        addCharges: 0,
+        discount: 0,
+        discountAmt: 0,
+        discountRemarks: "",
+        be: 1
+      };
+
+      const response = await germanStandardApi.upsertCart(cartRequest);
+
+      console.log("✅ ProductItem - Cart response:", response);
+
+      if (response.status === "Success" && response.statusCode === 2001) {
+        Notifications.success({ message: "Product added to cart successfully" });
+
+        // ✅ ENHANCED: Refresh cart state after successful addition
+        await refreshCartFromAPI();
       } else {
-        if (newCart.status) {
-          Notifications.success({ message: newCart?.message || "Product added to cart successfully" });
-        } else {
-          Notifications.error({ message: newCart?.message || "Failed to add to cart" });
-        }
+        throw new Error(response.message || "Failed to add to cart");
       }
     } catch (err: any) {
-      Notifications.error({ message: "Something went wrong!" });
+      console.error("❌ ProductItem - Add to cart error:", err);
+      Notifications.error({ message: err.message || "Something went wrong!" });
     }
-    // Note: Cart retrieval needs to be implemented with German Standard API
+  };
+
+  /**
+   * ✅ ENHANCED: Helper function to refresh cart data from German Standard API
+   */
+  const refreshCartFromAPI = async () => {
+    try {
+      const customerId = getCustomerIdFromSession(session);
+      if (!customerId) return;
+
+      console.log("🔄 ProductItem - Refreshing cart data...");
+      const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
+
+      console.log("📋 ProductItem - Cart summary response:", cartSummary);
+
+      if (cartSummary?.transactions) {
+        // Transform German Standard cart data to Redux CartItem format
+        const transformedCart = cartSummary.transactions.map((transaction: any) => ({
+          transId: transaction.TransId || 0,
+          product: transaction.ProductId || 0,
+          qty: transaction.Qty || 1,
+          rate: transaction.Rate || 0,
+          unit: transaction.Unit || 1,
+          totalRate: transaction.TotalAmount || (transaction.Rate * transaction.Qty) || 0,
+          productName: transaction.ProductName || "Unknown Product",
+          productImage: transaction.ProductImage || "/images/no-image.jpg",
+          unitName: transaction.UnitName || "Unit",
+          details: {
+            id: transaction.TransId?.toString() || "0",
+            _id: transaction.TransId?.toString() || "0",
+            productId: transaction.ProductId || "0",
+            pid: transaction.ProductId || "0",
+            name: transaction.ProductName || "Unknown Product",
+            price: transaction.Rate || 0,
+            retail_rate: transaction.Rate || 0,
+            quantity: transaction.Qty || 1,
+            image: transaction.ProductImage || "/images/no-image.jpg",
+            totalPrice: transaction.TotalAmount || (transaction.Rate * transaction.Qty) || 0,
+            storeId: transaction.StoreId || "1",
+            storeName: transaction.StoreName || "German Standard",
+            variantId: null,
+            availableQuantity: transaction.AvailableQty || 999,
+            createdAt: transaction.Date || new Date().toISOString(),
+          }
+        }));
+
+        console.log("✅ ProductItem - Dispatching cart to Redux:", transformedCart.length, "items");
+        dispatch(storeCart(transformedCart));
+      }
+    } catch (error) {
+      console.error("❌ ProductItem: Error refreshing cart:", error);
+    }
   };
 
   const handleAddToLocalCart = () => {
@@ -789,15 +853,6 @@ function ProductItem(props: any) {
     openDetails();
   };
 
-  const handleShare = () => {
-    // Add your share functionality here
-    notification.info({ message: "Share functionality coming soon" });
-  };
-
-  const handleAddToWishlist = () => {
-    // Add your wishlist functionality here
-    notification.info({ message: "Wishlist functionality coming soon" });
-  };
 
   return (
     <div
@@ -875,49 +930,6 @@ function ProductItem(props: any) {
             onClick={handleQuickView}
           >
             <CiSearch />
-          </button>
-        </Tooltip>
-        <Tooltip title="Compare" placement="left">
-          <button
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#E9421A",
-              cursor: "pointer",
-              backgroundColor: "transparent",
-              border: "none",
-              transition: "all 0.3s",
-              height: "40px",
-              fontSize: "23px",
-              padding: "10px",
-            }}
-            onClick={handleShare}
-          >
-            <CiShuffle />
-          </button>
-        </Tooltip>
-        <Tooltip title="Add to wishlist" placement="left">
-          <button
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: "50%",
-              backgroundColor: "transparent",
-              color: "#E9421A",
-              cursor: "pointer",
-              border: "none",
-              transition: "all 0.3s",
-              height: "40px",
-              fontSize: "23px",
-              padding: "10px",
-            }}
-            onClick={handleAddToWishlist}
-          >
-            <CiHeart />
           </button>
         </Tooltip>
       </div>
