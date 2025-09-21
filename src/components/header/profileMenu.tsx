@@ -90,120 +90,118 @@ const ProfileMenu = (props: any) => {
 
       {User?.user && (
         <>
-        <div
+          {/* Dashboard - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/dashboard");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <FiUser size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Dashboard</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Orders - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/orders");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <RiListUnordered size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Orders</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Downloads - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/downloads");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <RiListUnordered size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Downloads</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Purchased events - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/purchased_events");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <RiListUnordered size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Purchased events</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Address - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/address");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <PiAddressBook size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Address</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Buy again - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/buy_again");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <RiListUnordered size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Buy again</div>
-          </div>
-          <div
+          </div> */}
+
+          {/* Account details - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/profile");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <FiUser size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <div className="profileMenu-Txt1">Account details</div>
-          </div>
-          
-          <div
+          </div> */}
+
+          {/* Wishlist - Commented out */}
+          {/* <div
             className="profileMenu-Box2"
             onClick={() => {
               OpenLink("/user/favorites");
               props.close();
             }}
           >
-            {/* <div>
+            <div>
               <MdFavoriteBorder size={iconSize} className="profileMenu-Img1" />
-            </div> */}
+            </div>
             <Badge count={favouritesCount ?? ""} size="small" color={API.COLOR}>
               <div className="profileMenu-Txt1">Wishlist</div>
             </Badge>
-          </div>
-
-          {/* <div
-            className="profileMenu-Box2"
-            onClick={() => {
-              OpenLink("/user/notifications");
-              props.close();
-            }}
-          >
-            <div>
-              <RiNotification2Line
-                size={iconSize}
-                className="profileMenu-Img1"
-              />
-            </div>
-            <div className="profileMenu-Txt1">Notifications</div>
           </div> */}
         </>
       )}

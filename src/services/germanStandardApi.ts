@@ -1218,7 +1218,14 @@ export class GermanStandardApiService {
           transId: orderRequest.transId,
           date: orderRequest.date,
           customer: orderRequest.customer,
+          be: orderRequest.be,
           itemCount: orderRequest.body.length
+        },
+        requestPreview: orderRequest,
+        headersPreview: {
+          hasAuth: !!headers?.Authorization,
+          authPrefix: headers?.Authorization ? headers.Authorization.slice(0, 20) + '…' : null,
+          contentType: headers?.["Content-Type"]
         }
       });
 
@@ -1228,12 +1235,27 @@ export class GermanStandardApiService {
         { headers }
       );
 
+      console.log("📬 Order API HTTP:", {
+        status: response.status,
+        statusText: response.statusText,
+        url: response.config?.url
+      });
       console.log("📋 Raw German Standard Order API response:", response.data);
 
       // Handle success response format: {success: true, result: 12345}
       if (response.data?.success === true && response.data?.result) {
         console.log("✅ Order created/updated successfully:", response.data.result);
         return response.data;
+      }
+
+      // Handle alternate success format: {status: 'Success', statusCode: 2001, result: '12345'}
+      if (response.data?.status === 'Success' && response.data?.statusCode === 2001 && response.data?.result) {
+        const normalizedResult = typeof response.data.result === 'string'
+          ? parseInt(response.data.result as unknown as string, 10)
+          : (response.data.result as number);
+        const normalized: GermanStandardOrderResponse = { success: true, result: normalizedResult };
+        console.log("✅ Order created successfully (normalized format):", normalized);
+        return normalized;
       }
 
       // Handle failure response format: {status: "Failure", statusCode: 5000, message: "...", result: "2035"}
@@ -1262,7 +1284,11 @@ export class GermanStandardApiService {
       }
 
       // Handle unexpected response format
-      console.error("❌ Unexpected response format from German Standard Order API:", response.data);
+      console.error("❌ Unexpected response format from German Standard Order API:", {
+        data: response.data,
+        keys: response.data ? Object.keys(response.data) : null,
+        types: response.data ? Object.fromEntries(Object.entries(response.data).map(([k,v]) => [k, typeof v])) : null
+      });
       throw new Error("Unexpected response format from order API");
 
     } catch (error: any) {

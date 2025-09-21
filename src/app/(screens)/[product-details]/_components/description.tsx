@@ -295,10 +295,20 @@ function Description(props: Props) {
           duration: 5,
         });
       }
-    } catch (error) {
-      console.error("❌ Buy Now - Order creation error:", error);
+    } catch (error: any) {
+      // Rich diagnostics for Axios errors
+      const errInfo = {
+        message: error?.message,
+        name: error?.name,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        responseData: error?.response?.data,
+        requestUrl: error?.config?.url,
+        requestMethod: error?.config?.method,
+      };
+      console.error("❌ Buy Now - Order creation error:", errInfo);
       message.error({
-        content: "Failed to create order. Please try again.",
+        content: error?.response?.data?.message || error?.message || "Failed to create order. Please try again.",
         key: "order_creation",
         duration: 5,
       });

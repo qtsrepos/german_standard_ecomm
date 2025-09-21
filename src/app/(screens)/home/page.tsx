@@ -210,14 +210,15 @@ function Home() {
           setRetryCount(0); // Reset retry count on success
           console.log("✅ Categories stored in Redux successfully:", validCategories.length);
 
-          if (showNotifications && !isRetry) {
-            notification.success({
-              message: "Categories loaded successfully",
-              description: `Loaded ${validCategories.length} categories with ${validCategories.reduce((sum, cat) => sum + (cat.sub_categories?.length || 0), 0)} subcategories`,
-              placement: "topRight",
-              duration: 3,
-            });
-          }
+          // Removed success notification - categories loaded silently
+          // if (showNotifications && !isRetry) {
+          //   notification.success({
+          //     message: "Categories loaded successfully",
+          //     description: `Loaded ${validCategories.length} categories with ${validCategories.reduce((sum, cat) => sum + (cat.sub_categories?.length || 0), 0)} subcategories`,
+          //     placement: "topRight",
+          //     duration: 3,
+          //   });
+          // }
         } else {
           const errorMsg = "No valid categories after transformation";
           setCategoriesError(errorMsg);
