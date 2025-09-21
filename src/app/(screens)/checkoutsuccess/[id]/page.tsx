@@ -23,6 +23,7 @@ function Checkout() {
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
   const Checkout = useSelector((state: any) => state?.Checkout?.order);
   const Settings = useAppSelector(reduxSettings);
   const [isLoading, setIsLoading] = useState<any>(true);
@@ -72,6 +73,41 @@ function Checkout() {
   const PlaceOrder = async () => {
     try {
       console.log("🚀 Starting German Standard order creation process");
+
+      // Check if we have an order ID from cart drawer (URL parameter)
+      const orderId = params?.id;
+      console.log("📋 URL Order ID:", orderId);
+
+      // If we have an order ID from URL, we're coming from cart drawer - skip duplicate order creation
+      if (orderId && orderId !== "undefined") {
+        console.log("✅ Order already created via cart drawer, showing success page for order:", orderId);
+
+        // Clear checkout data to prevent future conflicts
+        dispatch(clearCheckout());
+
+        // Set success state directly
+        setOrderStatus(true);
+        setPaymentStatus(true);
+
+        // Create minimal order data for display
+        const mockOrderData = [{
+          id: orderId,
+          transId: orderId,
+          orderItems: [] // Will be populated if needed
+        }];
+
+        setOrderItems([]);
+        setResponseData(mockOrderData);
+
+        Notifications["success"]({
+          message: "Order Placed Successfully!",
+          description: `Your order has been created with ID: ${orderId}`,
+          duration: 5,
+        });
+
+        setIsLoading(false);
+        return;
+      }
 
       if (!Checkout?.cart?.length) {
         throw new Error("No items in cart");

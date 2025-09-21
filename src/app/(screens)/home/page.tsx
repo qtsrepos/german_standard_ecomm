@@ -282,7 +282,9 @@ function Home() {
           hasToken: !!session?.token
         });
 
-        if (showNotifications) {
+        // Only show notification if user is actually trying to access authenticated content
+        // and has been authenticated (not during initial load or session establishment)
+        if (showNotifications && status === "authenticated" && session?.token && !categoriesLoading) {
           notification.error({
             message: "Authentication Required",
             description: "Your session has expired or is invalid. Please log in again to access categories.",
@@ -306,7 +308,8 @@ function Home() {
           tokenLength: session?.token?.length
         });
 
-        if (showNotifications) {
+        // Only show notification if user is authenticated with a token
+        if (showNotifications && status === "authenticated" && session?.token) {
           notification.error({
             message: "Session Error",
             description: "There's an issue with your login session. Please log in again.",

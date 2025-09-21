@@ -83,26 +83,26 @@ const SummaryCardDrawer = (props: SummaryCardDrawerProps) => {
         country: 1, // Default country ID
         be: 1, // Business Entity ID
         customer: customerId, // Customer ID from JWT token
-        deliveryAddress: "Default delivery address", // TODO: Get from user profile
-        eventName: undefined, // Optional event name
+        deliveryAddress: null, // Updated to match Swagger spec
+        eventName: null, // Updated to match Swagger spec
         remarks: `Order created from cart with ${props.Cart.items.length} items`,
         discountType: 0, // No discount
         payTerms: 0, // Default payment terms
-        discountCouponRef: undefined, // No coupon
-        discountRef: undefined, // No discount campaign
+        discountCouponRef: null, // Updated to match Swagger spec
+        discountRef: null, // Updated to match Swagger spec
         sampleRequestBy: 0, // Not a sample request
-        deliveryTerms: "Standard delivery",
-        deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
+        deliveryTerms: null, // Updated to match Swagger spec
+        deliveryDate: null, // Updated to match Swagger spec - will be calculated by server
         body: props.Cart.items.map((item: any) => ({
           transId: 0, // Line item transaction ID
           product: Number(item.productId || item.pid || item.id), // Product ID
           qty: item.quantity || 1, // Quantity
           headerId: 0, // Always 0
-          voucherType: 0, // Always 0
+          voucherType: 1, // Updated to match Swagger spec (was 0)
           rate: item.price || item.rate || 0, // Unit price
           unit: 1, // Unit ID
-          vat: 0, // VAT percentage
-          addcharges: 0, // Extra charges
+          vat: 5, // Updated to match Swagger spec (was 0)
+          addcharges: 1, // Updated to match Swagger spec (was 0)
           discount: 0, // Discount percentage
           discountAmt: 0, // Discount amount
           discountRemarks: null, // No discount remarks
@@ -136,19 +136,6 @@ const SummaryCardDrawer = (props: SummaryCardDrawerProps) => {
       // Handle response (now handles both normalized and original formats)
       if (response?.success === true && response?.result) {
         console.log("✅ Cart Drawer - Order created successfully:", response.result);
-        message.success({
-          content: `Order created successfully! Order ID: ${response.result}`,
-          key: "cart_order_creation",
-          duration: 5,
-        });
-
-        // Close cart drawer
-        props.onClose();
-
-        // Redirect to order success page
-        router.push(`/checkoutsuccess/${response.result}`);
-      } else if (response?.status === "Success" && response?.result) {
-        console.log("✅ Cart Drawer - Order created successfully (legacy format):", response.result);
         message.success({
           content: `Order created successfully! Order ID: ${response.result}`,
           key: "cart_order_creation",
