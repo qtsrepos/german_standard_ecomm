@@ -17,8 +17,7 @@
 // import API from "@/config/API";
 // import { POST, GET, PUT } from "@/util/apicall";
 // import { useSession } from "next-auth/react";
-// import { storeCart } from "@/redux/slice/cartSlice";
-// import MergeLocalcartToLogin from "@/app/Middleware/MergeLocalcartToLogin";
+// // import MergeLocalcartToLogin from "@/app/Middleware/MergeLocalcartToLogin";
 // import veg from "../../../public/images/veg.png"
 // import nonveg from "../../../public/images/non veg.png"
 
@@ -350,34 +349,33 @@ import {
 } from "antd";
 import { reduxSettings } from "@/redux/slice/settingsSlice";
 import {
-  addToLocalCart,
-  decreaseLocalCartQuantity,
-  increaseLocalCartQuantity,
+  setLocalCart,
+  cartServiceHelpers,
+  localCartItems,
+  isItemLoading,
+  LocalCartSlice,
 } from "@/redux/slice/localcartSlice";
 import { useSession } from "next-auth/react";
 import { CiSearch, CiShoppingCart } from "react-icons/ci";
-import { getProductRates, getBestProductRate, ProductRate } from "@/util/productRatesApi";
-import { germanStandardApi } from "@/services/germanStandardApi";
-import { getCustomerIdFromSession } from "@/shared/helpers/jwtUtils";
-import { storeCart } from "@/redux/slice/cartSlice";
 
-function ProductItem(props: any) {
+interface ProductItemProps {
+  item: any;
+  enableRateFetching?: boolean; // New prop to control rate fetching
+  context?: 'listing' | 'details' | 'search'; // Context information
+}
+
+function ProductItem(props: ProductItemProps) {
   const [isHovered, setIsHovered] = useState(false); // Added state for hover
-  const [productRates, setProductRates] = useState<ProductRate[]>([]);
-  const [bestRate, setBestRate] = useState<ProductRate | null>(null);
-  const [ratesLoading, setRatesLoading] = useState(false);
   const [productStock, setProductStock] = useState({ unit: 10, status: true });
   const navigate = useRouter();
   const dispatch = useDispatch();
   const Settings = useSelector(reduxSettings);
-  const LocalCart = useSelector(
-    (state: any) => state.LocalCart || { items: [] }
-  );
+  const cartItems = useSelector(localCartItems);
   const { data: session }: any = useSession();
   const [quantity, setQuantity] = useState(1);
-  const [totalPrice, setTotalPrice] = useState(0); // Will be set based on product data
+  const [totalPrice, setTotalPrice] = useState(0);
   const [Notifications, contextHolder] = notification.useNotification();
-  const cartItems = useSelector((state: any) => state.Cart.items);
+  const [cartLoading, setCartLoading] = useState(false);
 
   // Map the props data structure - support both formats
   const product = {
@@ -388,8 +386,9 @@ function ProductItem(props: any) {
     description: props?.item?.description || props?.item?.Description,
     extraDescription: props?.item?.extraDescription || props?.item?.ExtraDescription,
     image: props?.item?.image || props?.item?.Image,
-    price: bestRate?.rate || props?.item?.price || 0,
-    retail_rate: bestRate?.rate || props?.item?.price || 0,
+    // Pricing: support transformed fields and raw API field `Rate`
+    price: props?.item?.price || props?.item?.retail_rate || props?.item?.Rate || 0,
+    retail_rate: props?.item?.price || props?.item?.retail_rate || props?.item?.Rate || 0,
     unit: productStock.unit, // Use state for stock quantity
     status: productStock.status, // Use state for stock status
     averageRating: 0, // Default rating
@@ -398,131 +397,18 @@ function ProductItem(props: any) {
     category: props?.item?.category,
   };
 
-  // Fetch product rates and stock data for German Standard API format
+
+  // Simple stock and status initialization
   useEffect(() => {
-    const fetchProductData = async () => {
-      const productId = props?.item?.id || props?.item?._id || props?.item?.Id;
-      console.log("🆔 ProductItem - Processing Product ID:", productId, "| Session:", !!session?.token);
+    // Stock: support transformed fields and raw API field `Stock`
+    const stockUnit = props?.item?.unit || props?.item?.stock || props?.item?.Stock || 10;
+    const stockStatus = props?.item?.status !== false && stockUnit > 0;
 
-      if (productId) {
-        // Fetch stock data for ALL users (authenticated and non-authenticated)
-        console.log("🔍 Fetching stock for ProductItem - Product ID:", productId);
-
-        // Try multiple warehouse configurations to find working one
-        let stockResponse = null;
-        const warehousesToTry = [2, 1, 0]; // Try different warehouse IDs
-
-        try {
-          for (const warehouse of warehousesToTry) {
-            try {
-              console.log(`📦 Trying warehouse ${warehouse} for product ${productId}`);
-              stockResponse = await germanStandardApi.getStock({
-                product: Number(productId),
-                warehouse: warehouse,
-                be: 1
-              });
-
-              if (stockResponse && Array.isArray(stockResponse) && stockResponse.length > 0) {
-                console.log(`✅ Found stock data with warehouse ${warehouse}:`, stockResponse);
-                break; // Success! Stop trying other warehouses
-              } else {
-                console.log(`⚠️ No stock data with warehouse ${warehouse}`);
-              }
-            } catch (warehouseError: any) {
-              console.log(`❌ Warehouse ${warehouse} failed:`, warehouseError.message);
-              continue; // Try next warehouse
-            }
-          }
-
-          console.log("📦 ProductItem Final Stock API response:", stockResponse);
-
-          if (stockResponse && Array.isArray(stockResponse) && stockResponse.length > 0) {
-            const stockData = stockResponse[0];
-            if (stockData && typeof stockData.BalQty !== 'undefined') {
-              const stockQuantity = Math.floor(stockData.BalQty) || 0; // API returns BalQty, not Quantity
-              setProductStock({
-                unit: stockQuantity,
-                status: stockQuantity > 0
-              });
-              console.log("✅ ProductItem Stock data set:", {
-                unit: stockQuantity,
-                status: stockQuantity > 0,
-                warehouse: stockData.Warehouse
-              });
-            } else {
-              console.warn("⚠️ ProductItem: Stock data format invalid:", stockData);
-              setProductStock({ unit: 0, status: false });
-            }
-          } else {
-            console.warn("⚠️ ProductItem: No stock data received from any warehouse - Product might not exist in inventory");
-            setProductStock({ unit: 0, status: false });
-          }
-        } catch (stockError) {
-          console.error("❌ ProductItem Stock fetch error:", stockError);
-          // Show real error instead of fake default
-          setProductStock({ unit: -1, status: false }); // -1 indicates API error
-        }
-
-        // Fetch rates ONLY if user is authenticated (business logic)
-        if (session?.token) {
-          setRatesLoading(true);
-          try {
-            console.log("💰 Fetching rates for ProductItem - Product ID:", productId, "(type:", typeof productId, ")");
-
-            // Convert productId to number to ensure API compatibility
-            const numericProductId = Number(productId);
-            if (isNaN(numericProductId)) {
-              throw new Error(`Invalid product ID: ${productId} cannot be converted to number`);
-            }
-
-            console.log("💰 Converted Product ID to number:", numericProductId);
-
-            // Fetch all product rates with error handling
-            const rates = await getProductRates(numericProductId);
-            console.log("💰 ProductItem rates received:", rates);
-
-            if (rates && Array.isArray(rates) && rates.length > 0) {
-              setProductRates(rates);
-
-              // Get the best rate (lowest price)
-              const best = await getBestProductRate(numericProductId);
-              setBestRate(best);
-              console.log("✅ ProductItem best rate set:", best);
-            } else {
-              console.warn("⚠️ ProductItem: No rates received for product ID:", numericProductId, "- API may not have pricing data for this product");
-              setProductRates([]);
-              setBestRate(null);
-            }
-          } catch (rateError: any) {
-            console.error("❌ ProductItem Rate fetch error:", {
-              productId,
-              errorMessage: rateError.message,
-              errorType: rateError.name,
-              fullError: rateError
-            });
-            // Set empty rates on error (don't show fake prices)
-            setProductRates([]);
-            setBestRate(null);
-          } finally {
-            setRatesLoading(false);
-          }
-        } else {
-          console.log("👤 User not authenticated - skipping rate fetching (stock still fetched)");
-          setRatesLoading(false);
-          setProductRates([]);
-          setBestRate(null);
-        }
-      } else {
-        console.warn("❌ ProductItem: No product ID found in props");
-        setProductStock({ unit: 0, status: false });
-        setProductRates([]);
-        setBestRate(null);
-        setRatesLoading(false);
-      }
-    };
-
-    fetchProductData();
-  }, [props?.item?.id, props?.item?._id, props?.item?.Id, session?.token]);
+    setProductStock({
+      unit: stockUnit,
+      status: stockStatus
+    });
+  }, [props?.item?.unit, props?.item?.stock, props?.item?.Stock, props?.item?.status]);
 
   // Update total price when quantity or price changes
   useEffect(() => {
@@ -530,14 +416,19 @@ function ProductItem(props: any) {
     setTotalPrice(basePrice * quantity);
   }, [quantity, product.retail_rate]);
 
-  const cartItemsLocal = session?.token ? cartItems : LocalCart.items;
+  // Check if product is in cart and get its details
+  const isInCart = cartItems?.some((item: any) =>
+    item.productId === product.pid && item.variantId === null
+  );
+
   useEffect(() => {
-    cartItemsLocal.find((item: any) => {
-      if (item.pid == product.pid) {
-        setQuantity(item.quantity);
-      }
-    });
-  }, [cartItemsLocal, product.pid]);
+    const cartItem = cartItems?.find((item: any) =>
+      item.productId === product.pid && item.variantId === null
+    );
+    if (cartItem) {
+      setQuantity(cartItem.quantity);
+    }
+  }, [cartItems, product.pid]);
 
   const givenDate: any = new Date(product.createdAt);
   const currentDate: any = new Date();
@@ -545,308 +436,166 @@ function ProductItem(props: any) {
 
   const updateQuantity = async (type: "add" | "reduce") => {
     const availableQuantity = product.unit || 10;
-    const cartItem = cartItemsLocal.find(
-      (item: any) => item.pid === product.pid
+    const cartItem = cartItems?.find(
+      (item: any) => item.productId === product.pid && item.variantId === null
     );
 
     if (!cartItem) {
       return;
     }
+
     try {
-      if (session?.token) {
-        // For now, we'll use local cart management for both formats
-        // TODO: Implement proper API calls for cart quantity updates
-        if (type === "add" && quantity < availableQuantity) {
-          dispatch(increaseLocalCartQuantity({ ...cartItem }));
-        } else if (type === "reduce" && quantity > 0) {
-          dispatch(decreaseLocalCartQuantity({ ...cartItem }));
+      setCartLoading(true);
+      const newQuantity = type === "add" ? cartItem.quantity + 1 : cartItem.quantity - 1;
+
+      if (newQuantity <= 0) {
+        // Remove item if quantity becomes 0
+        const result = await cartServiceHelpers.removeFromCart(
+          product.pid,
+          null,
+          { showNotification: true }
+        );
+        if (result.success) {
+          const updatedCart = await cartServiceHelpers.getCart();
+          dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
+        }
+      } else if (newQuantity <= availableQuantity) {
+        // Update quantity
+        const result = await cartServiceHelpers.updateQuantity(
+          product.pid,
+          null,
+          newQuantity,
+          { showNotification: false }
+        );
+        if (result.success) {
+          const updatedCart = await cartServiceHelpers.getCart();
+          dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
         }
       } else {
-        if (type === "add" && quantity < availableQuantity) {
-          dispatch(increaseLocalCartQuantity({ ...cartItem }));
-        } else if (type === "reduce" && quantity > 0) {
-          dispatch(decreaseLocalCartQuantity({ ...cartItem }));
-        }
+        notification.warning({
+          message: "Stock Limit Reached",
+          description: `Only ${availableQuantity} units available`,
+          duration: 3
+        });
       }
-    } catch (error) {
-      notification.error({ message: "Can't change Quantity" });
+    } catch (error: any) {
+      console.error("Error updating quantity:", error);
+      notification.error({
+        message: "Can't change quantity",
+        description: error.message || "Please try again"
+      });
+    } finally {
+      setCartLoading(false);
     }
   };
 
   const openDetails = () => {
-    // ENHANCED: Pass complete product data with prioritization
-
-    // First priority: Use fullProductData if available (from search/products page)
-    let productDataToPass = null;
-
-    if (props?.item?.fullProductData) {
-      console.log("📋 Using complete fullProductData from search page:", props.item.fullProductData);
-      productDataToPass = {
-        ...props.item.fullProductData,
-        // Add current component state for real-time data
-        currentStock: productStock,
-        currentRates: productRates,
-        currentBestRate: bestRate,
-        ratesLoading: ratesLoading,
-        // Add timestamp for data freshness
-        passedAt: new Date().toISOString()
-      };
-    }
-    // Fallback: Use basic productData if available
-    else if (props?.item?.productData) {
-      console.log("📋 Using basic productData fallback:", props.item.productData);
-      productDataToPass = props.item.productData;
-    }
-    // Last resort: Construct from current product state
-    else {
-      console.log("📋 Constructing product data from component state");
-      productDataToPass = {
-        Id: product.id,
-        id: product.id,
-        Name: product.name,
-        name: product.name,
-        Description: product.description,
-        description: product.description,
-        ExtraDescription: product.extraDescription,
-        extraDescription: product.extraDescription,
-        Image: product.image,
-        image: product.image,
-        Code: product.code,
-        source: 'component_state',
-        passedAt: new Date().toISOString()
-      };
-    }
-
-    try {
-      const encodedProductData = encodeURIComponent(JSON.stringify(productDataToPass));
-
-      // Check URL length to prevent issues with very large data
-      const baseUrl = `/${product.code}/?pid=${product.pid}&review=2&productData=`;
-      const fullUrl = baseUrl + encodedProductData;
-
-      if (fullUrl.length > 8000) {
-        console.warn("⚠️ URL too long, using basic data only");
-        // Fallback to essential data only
-        const essentialData = {
-          Id: product.id,
-          Name: product.name,
-          Description: product.description,
-          Image: product.image,
-          Code: product.code,
-          source: 'essential_fallback'
-        };
-        const encodedEssentialData = encodeURIComponent(JSON.stringify(essentialData));
-        navigate.push(baseUrl + encodedEssentialData);
-      } else {
-        console.log("✅ Navigating with complete product data, URL length:", fullUrl.length);
-        navigate.push(fullUrl);
-      }
-    } catch (error) {
-      console.error("❌ Error encoding product data, using minimal navigation:", error);
-      // Emergency fallback - just use basic URL params
-      navigate.push(`/${product.code}/?pid=${product.pid}&review=2&name=${encodeURIComponent(product.name)}`);
-    }
-  };
-
-  const addToCart = async (quantity: number) => {
-    // ✅ IMPROVED: Enhanced status validation with better error messages
-    const productStatus = product.status;
-    const availableStock = productStock?.unit || product.unit || 0;
-
-    console.log("🔍 ProductItem availability check:", {
-      productName: product.name,
-      status: productStatus,
-      availableStock,
-      requestedQuantity: quantity
-    });
-
-    // Check product status with more intelligent logic
-    if (productStatus === false || (productStatus !== true && productStatus !== undefined && !productStatus)) {
-      notification.error({
-        message: `Product Not Available`,
-        description: `${product.name || 'This product'} is currently not available for purchase.`
-      });
-      return;
-    } else if (availableStock <= 0) {
-      notification.error({ message: `Product is Out of Stock!!` });
-      return;
-    } else if (quantity > product.unit) {
-      notification.error({ message: `Selected Quantity is Not Available.` });
-      return;
-    } else if (quantity === 0) {
-      notification.error({ message: `Please select at least 1 quantity.` });
-      return;
-    }
-
-    try {
-      // ✅ FIXED: Use German Standard API directly instead of POST with full URL
-      console.log("🛒 ProductItem - Adding to cart:", {
-        productId: product.id,
-        quantity,
-        productName: product.name
-      });
-
-      // Extract customer ID from session
-      const customerId = getCustomerIdFromSession(session);
-      if (!customerId) {
-        notification.error({ message: "Please login to add items to cart" });
-        return;
-      }
-
-      // Prepare cart request for German Standard API
-      const currentDate = new Date().toISOString().split('T')[0];
-      const cartRequest = {
-        transId: 0, // 0 for new cart item
-        date: currentDate,
-        customer: customerId,
-        warehouse: 2, // Default warehouse
-        remarks: `Added from product page - ${product.name}`,
-        discountType: 0,
-        discountCouponRef: "",
-        discountRef: "",
-        sampleRequestedBy: 0,
-        product: Number(product.id),
-        qty: quantity,
-        rate: product.price || 0,
-        unit: 1, // Default unit
-        totalRate: (product.price || 0) * quantity,
-        addCharges: 0,
-        discount: 0,
-        discountAmt: 0,
-        discountRemarks: "",
-        be: 1
-      };
-
-      const response = await germanStandardApi.upsertCart(cartRequest);
-
-      console.log("✅ ProductItem - Cart response:", response);
-
-      if (response.status === "Success" && response.statusCode === 2001) {
-        Notifications.success({ message: "Product added to cart successfully" });
-
-        // ✅ ENHANCED: Refresh cart state after successful addition
-        await refreshCartFromAPI();
-      } else {
-        throw new Error(response.message || "Failed to add to cart");
-      }
-    } catch (err: any) {
-      console.error("❌ ProductItem - Add to cart error:", err);
-      Notifications.error({ message: err.message || "Something went wrong!" });
-    }
-  };
-
-  /**
-   * ✅ ENHANCED: Helper function to refresh cart data from German Standard API
-   */
-  const refreshCartFromAPI = async () => {
-    try {
-      const customerId = getCustomerIdFromSession(session);
-      if (!customerId) return;
-
-      console.log("🔄 ProductItem - Refreshing cart data...");
-      const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
-
-      console.log("📋 ProductItem - Cart summary response:", cartSummary);
-
-      if (cartSummary?.transactions) {
-        // Transform German Standard cart data to Redux CartItem format
-        const transformedCart = cartSummary.transactions.map((transaction: any) => ({
-          transId: transaction.TransId || 0,
-          product: transaction.ProductId || 0,
-          qty: transaction.Qty || 1,
-          rate: transaction.Rate || 0,
-          unit: transaction.Unit || 1,
-          totalRate: transaction.TotalAmount || (transaction.Rate * transaction.Qty) || 0,
-          productName: transaction.ProductName || "Unknown Product",
-          productImage: transaction.ProductImage || "/images/no-image.jpg",
-          unitName: transaction.UnitName || "Unit",
-          details: {
-            id: transaction.TransId?.toString() || "0",
-            _id: transaction.TransId?.toString() || "0",
-            productId: transaction.ProductId || "0",
-            pid: transaction.ProductId || "0",
-            name: transaction.ProductName || "Unknown Product",
-            price: transaction.Rate || 0,
-            retail_rate: transaction.Rate || 0,
-            quantity: transaction.Qty || 1,
-            image: transaction.ProductImage || "/images/no-image.jpg",
-            totalPrice: transaction.TotalAmount || (transaction.Rate * transaction.Qty) || 0,
-            storeId: transaction.StoreId || "1",
-            storeName: transaction.StoreName || "German Standard",
-            variantId: null,
-            availableQuantity: transaction.AvailableQty || 999,
-            createdAt: transaction.Date || new Date().toISOString(),
-          }
-        }));
-
-        console.log("✅ ProductItem - Dispatching cart to Redux:", transformedCart.length, "items");
-        dispatch(storeCart(transformedCart));
-      }
-    } catch (error) {
-      console.error("❌ ProductItem: Error refreshing cart:", error);
-    }
-  };
-
-  const handleAddToLocalCart = () => {
-    // ✅ IMPROVED: Enhanced status validation with better error messages
-    const productStatus = product.status;
-    const availableStock = productStock?.unit || product.unit || 0;
-
-    console.log("🔍 Local cart availability check:", {
-      productName: product.name,
-      status: productStatus,
-      availableStock,
-      requestedQuantity: quantity
-    });
-
-    // Check product status with more intelligent logic
-    if (productStatus === false || (productStatus !== true && productStatus !== undefined && !productStatus)) {
-      notification.error({
-        message: `Product Not Available`,
-        description: `${product.name || 'This product'} is currently not available for purchase.`
-      });
-      return;
-    } else if (availableStock <= 0) {
-      notification.error({ message: `Product is Out of Stock!!` });
-      return;
-    } else if (quantity > product.unit) {
-      notification.error({ message: `Selected Quantity is Not Available.` });
-      return;
-    } else if (quantity === 0) {
-      notification.error({ message: `Please select at least 1 quantity.` });
-      return;
-    }
-
-    const cartItem = {
-      productId: product.id,
-      pid: product.pid,
+    const productDataToPass = {
+      Id: product.id,
+      id: product.id,
+      Name: product.name,
       name: product.name,
-      price: product.retail_rate,
-      quantity: quantity,
+      Description: product.description,
+      description: product.description,
+      ExtraDescription: product.extraDescription,
+      extraDescription: product.extraDescription,
+      Image: product.image,
       image: product.image,
-      variantId: null,
-      totalPrice: totalPrice,
-      availableQuantity: product.unit,
-      storeId: product.category, // Use category as storeId
-      storeName: product.extraDescription, // Use extraDescription as storeName
+      Code: product.code,
+      unit: productStock.unit,
+      status: productStock.status,
+      price: product.retail_rate,
+      retail_rate: product.retail_rate,
+      _metadata: {
+        source: 'product_listing_enhanced',
+        currentStock: productStock,
+        passedFrom: 'product_listing'
+      },
+      passedAt: new Date().toISOString()
     };
 
     try {
-      dispatch(addToLocalCart(cartItem));
+      // Debug log before redirecting to details page
+      console.log("🧭 Navigating to Product Details with payload:", {
+        productId: product.id,
+        productCode: product.code,
+        name: product.name,
+        price: product.retail_rate,
+        stock: productStock,
+        rawItem: props?.item,
+        payload: productDataToPass
+      });
+      const encodedProductData = encodeURIComponent(JSON.stringify(productDataToPass));
+      const url = `/${product.code}/?pid=${product.pid}&review=2&productData=${encodedProductData}`;
+      console.log("🔗 Details URL:", url);
+      navigate.push(url);
     } catch (error) {
+      console.error("Error encoding product data:", error);
+      navigate.push(`/${product.code}/?pid=${product.pid}&review=2`);
+    }
+  };
+
+  // Removed German Standard API cart - using enhanced cart service only
+
+  // Removed German Standard API cart refresh - using enhanced cart service only
+
+  const handleAddToLocalCart = async () => {
+    try {
+      setCartLoading(true);
+
+      const productData = {
+        id: product.id,
+        productId: product.id,
+        name: product.name,
+        price: product.retail_rate,
+        image: product.image,
+        unit: product.unit,
+        status: product.status,
+        variantId: null,
+        category: product.category,
+        code: product.code,
+        description: product.description,
+        availableQuantity: product.unit,
+        storeId: product.category,
+        storeName: product.extraDescription
+      };
+
+      console.log("🔍 Adding to local cart:", {
+        productName: product.name,
+        quantity,
+        productData
+      });
+
+      const result = await cartServiceHelpers.addToCart(
+        productData,
+        quantity,
+        {
+          source: 'product_listing',
+          showNotification: true
+        }
+      );
+
+      if (result.success) {
+        // Refresh cart state
+        const updatedCart = await cartServiceHelpers.getCart();
+        dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
+      }
+
+    } catch (error: any) {
       console.error("Error adding to local cart:", error);
-      notification.error({ message: "Failed to add item to cart" });
+      notification.error({
+        message: "Failed to add item to cart",
+        description: error.message || "Please try again"
+      });
+    } finally {
+      setCartLoading(false);
     }
   };
 
 
   // Functions for the sidebar actions
-  const handleAddToCart = () => {
-    if (session?.token) {
-      addToCart(quantity);
-    } else {
-      handleAddToLocalCart();
-    }
+  const handleAddToCart = async () => {
+    await handleAddToLocalCart();
   };
 
   const handleQuickView = () => {
@@ -896,8 +645,8 @@ function ProductItem(props: any) {
               justifyContent: "center",
               borderRadius: "50%",
               backgroundColor: "transparent",
-              color: "#E9421A",
-              cursor: "pointer",
+              color: cartLoading ? "#ccc" : "#E9421A",
+              cursor: cartLoading ? "not-allowed" : "pointer",
               border: "none",
               transition: "all 0.3s",
               height: "40px",
@@ -905,9 +654,22 @@ function ProductItem(props: any) {
               padding: "10px",
             }}
             onClick={handleAddToCart}
-          // disabled={props?.item?.status != true || props?.item?.unit === 0}
+            disabled={cartLoading || product.status !== true || product.unit === 0}
           >
-            <CiShoppingCart />
+            {cartLoading ? (
+              <div
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #f3f3f3",
+                  borderTop: "2px solid #E9421A",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite"
+                }}
+              />
+            ) : (
+              <CiShoppingCart />
+            )}
           </button>
         </Tooltip>
         <Tooltip title="Quick view" placement="left">
@@ -966,91 +728,26 @@ function ProductItem(props: any) {
           </Popover> */}
           <div className="d-flex justify-content-between">
             <div className="ProductItem-txt3 text-center text-sm-start">
-              {ratesLoading ? (
-                <span className="text-muted">Loading prices...</span>
-              ) : bestRate ? (
+              {product.retail_rate > 0 ? (
                 <div>
                   <div className="d-flex align-items-center gap-1">
                     <div className="fw-bold">
                       {new Intl.NumberFormat("en-US", {
                         style: "currency",
-                        currency: Settings?.currency || "USD",
-                      }).format(bestRate.rate)}
+                        currency: Settings?.currency || "AED",
+                      }).format(product.retail_rate)}
                     </div>
-                    {productRates.length > 1 && (
-                      <span className="badge bg-success" style={{ fontSize: '0.6rem' }}>
-                        Best
-                      </span>
-                    )}
                   </div>
-                  <div className="small text-muted">
-                    per {bestRate.unitName}
-                    {productRates.length > 1 && (
-                      <span className="ms-1">• {productRates.length} options</span>
-                    )}
-                  </div>
-                </div>
-              ) : product.retail_rate > 0 ? (
-                <div className="fw-bold">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: Settings?.currency || "USD",
-                  }).format(product.retail_rate)}
-                </div>
-              ) : session?.token ? (
-                <div className="text-muted">
-                  <small>💬 Price unavailable</small>
                 </div>
               ) : (
-                <div className="text-info">
-                  <small>🔒 Login for pricing</small>
+                <div className="text-muted">
+                  <small>Price not available</small>
                 </div>
               )}
             </div>
           </div>
           
-          {/* Enhanced Detailed Rates Display */}
-          {productRates.length > 1 && !ratesLoading && (
-            <div className="mt-2">
-              <div className="small text-muted mb-1">
-                💰 Multiple pricing options:
-              </div>
-              <div className="d-flex flex-wrap gap-1">
-                {productRates.slice(0, 2).map((rate, index) => (
-                  <Tooltip
-                    key={index}
-                    title={`${rate.rate} ${Settings?.currency || "USD"} per ${rate.unitName}`}
-                    placement="top"
-                  >
-                    <span
-                      className={`badge ${rate === bestRate ? 'bg-success' : 'bg-primary'}`}
-                      style={{ fontSize: '0.65rem', cursor: 'pointer' }}
-                    >
-                      {new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: Settings?.currency || "USD",
-                      }).format(rate.rate)}/{rate.unitName}
-                      {rate === bestRate && ' ⭐'}
-                    </span>
-                  </Tooltip>
-                ))}
-                {productRates.length > 2 && (
-                  <Tooltip
-                    title={`Click to see all ${productRates.length} pricing options`}
-                    placement="top"
-                  >
-                    <span
-                      className="badge bg-info"
-                      style={{ fontSize: '0.65rem', cursor: 'pointer' }}
-                      onClick={() => openDetails()}
-                    >
-                      +{productRates.length - 2} more options
-                    </span>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Removed enhanced rates display - using simple pricing only */}
         </div>
 
         <div className="d-flex flex-column align-items-center mt-2">

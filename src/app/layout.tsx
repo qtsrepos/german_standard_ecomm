@@ -13,6 +13,7 @@ import ReactQueryProvider from "@/util/queryProvider";
 import CONFIG from "@/config/configuration";
 import MobileIcons from "./mobileicons";
 import BottomTab from "@/components/bottomTab";
+import CartInitializer from "@/components/cart/CartInitializer";
 
 export const metadata: Metadata = {
   title: CONFIG.NAME,
@@ -60,6 +61,7 @@ export default function RootLayout({
             <AntdRegistry>
               <ConfigProvider theme={theme}>
                 <StoreProvider>
+                  <CartInitializer />
                   <Header />
                   {children}
                   <MobileIcons />

@@ -77,7 +77,7 @@ import {
 import API from "@/config/API";
 import { GET, POST } from "@/util/apicall";
 import { useDispatch } from "react-redux";
-import { storeCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 // background: linear-gradient(to right, #f7a900, #ff5733);
 // Scoped styles using styled-jsx
 const styles = `

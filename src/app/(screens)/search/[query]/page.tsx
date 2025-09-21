@@ -117,34 +117,67 @@ function Page() {
             sampleProduct: products[0]
           });
 
-          // Transform products for display compatibility with enhanced data
-          const transformedProducts = products.map((product: any) => ({
-            _id: product.Id?.toString() || "0",
-            id: product.Id?.toString() || "0",
-            name: product.Name || "Unnamed Product",
-            description: product.Description || "",
-            image: product.Image || "/images/no-image.jpg",
-            images: product.Image ? [product.Image] : [],
-            price: 0, // Will be populated from rates API if needed
-            originalPrice: 0,
-            discount: 0,
-            inStock: true,
-            category: "",
-            subCategory: "",
-            code: product.Code || "",
-            extraDescription: product.ExtraDescription || "",
-            // ENHANCED: Complete German Standard API data for product detail navigation
-            fullProductData: {
-              // Core German Standard API fields
-              Id: product.Id,
-              Name: product.Name,
-              Code: product.Code,
-              Description: product.Description,
-              ExtraDescription: product.ExtraDescription,
-              Image: product.Image,
+          // Enhanced debugging: Check for price fields in API response
+          if (products.length > 0) {
+            const sampleProduct = products[0];
+            console.log("🔍 Price Analysis - Sample Product Fields:", {
+              productId: sampleProduct.Id,
+              productName: sampleProduct.Name,
+              allFields: Object.keys(sampleProduct),
+              possiblePriceFields: {
+                Price: sampleProduct.Price,
+                Rate: sampleProduct.Rate,
+                BasePrice: sampleProduct.BasePrice,
+                RetailRate: sampleProduct.RetailRate,
+                OriginalPrice: sampleProduct.OriginalPrice,
+                Discount: sampleProduct.Discount,
+                Cost: sampleProduct.Cost,
+                Amount: sampleProduct.Amount
+              }
+            });
+          }
 
-              // Additional metadata for optimization
-              source: 'german_standard_api',
+          // ✅ FIXED: Use enhanced German Standard API transformation for consistent data handling
+          console.log("🔄 Using enhanced German Standard API transformation for search results");
+          const transformedProducts = germanStandardApi.transformProductsForDisplay(
+            products,
+            "0", // Default category for search results
+            undefined // No subcategory for search
+          );
+
+          // ✅ ENHANCED: Add search-specific metadata to each product
+          const searchEnhancedProducts = transformedProducts.map((product: any) => ({
+            ...product,
+            // Add search-specific information while preserving all German Standard metadata
+            _metadata: {
+              ...product._metadata,
+              // Override source to indicate this came from search
+              searchContext: true,
+              searchQuery: decodedSearchInput,
+              searchPage: page,
+              searchPageSize: pageSize,
+              searchSortType: sortType,
+              searchSortOrder: sortOrder,
+              searchTimestamp: new Date().toISOString(),
+              // Keep the original source for navigation logic
+              originalSource: product._metadata?.source,
+              // Add full product data for navigation optimization
+              rawProductData: {
+                ...product._metadata?.rawProductData,
+                // Include search context
+                searchContext: {
+                  query: decodedSearchInput,
+                  page: page,
+                  pageSize: pageSize,
+                  sortType: sortType,
+                  sortOrder: sortOrder
+                }
+              }
+            },
+            // ✅ PRESERVED: Add fullProductData for backward compatibility
+            fullProductData: {
+              ...product._metadata?.rawProductData,
+              source: 'german_standard_search',
               fetchedAt: new Date().toISOString(),
               searchQuery: decodedSearchInput,
               pageInfo: {
@@ -152,36 +185,12 @@ function Page() {
                 pageSize: pageSize,
                 sortType: sortType,
                 sortOrder: sortOrder
-              },
-
-              // Preserve any additional fields from API response
-              ...product,
-
-              // Standardized dual-format support
-              id: product.Id,
-              pid: product.Id,
-              name: product.Name,
-              description: product.Description,
-              extraDescription: product.ExtraDescription,
-              image: product.Image,
-              code: product.Code
-            },
-            // For backward compatibility - keep original productData
-            productData: {
-              Id: product.Id,
-              Name: product.Name,
-              Description: product.Description,
-              ExtraDescription: product.ExtraDescription,
-              Image: product.Image,
-              Code: product.Code,
-            },
-            // For product detail page routing
-            slug: `product-${product.Id}`,
-            pid: product.Id,
+              }
+            }
           }));
 
           // Apply client-side sorting if needed (fallback)
-          let sortedProducts = [...transformedProducts];
+          let sortedProducts = [...searchEnhancedProducts];
           if (activeSortTag && activeSortTag.title.includes("Price")) {
             // Note: Price sorting would work better with actual price data from rates API
             sortedProducts.sort((a, b) => {
@@ -317,7 +326,7 @@ function Page() {
                   className="ps-md-0 col-6 product-card-searchstore lg-25"
                   key={index}
                 >
-                  <ProductItem item={item} />
+                  <ProductItem item={item} context="search" enableRateFetching={true} />
                 </Col>
               ))}
             </Row>

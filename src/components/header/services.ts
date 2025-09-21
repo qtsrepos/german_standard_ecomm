@@ -1,7 +1,7 @@
 import API from "@/config/API";
 import { GET, POST } from "@/util/apicall";
 // import { storeCategory } from "@/redux/slice/categorySlice";
-import { storeCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 import { useEffect, useState } from "react";
 // import { storeSettings } from "@/redux/slice/settingsSlice";
 import { clearReduxData } from "@/lib/clear_redux";

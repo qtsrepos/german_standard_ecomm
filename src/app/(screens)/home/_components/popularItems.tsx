@@ -223,7 +223,7 @@ function PopularItems(props: any) {
                   style={{ width: "50%" }}
                   key={index}
                 >
-                  <ProductItem item={prod} />
+                  <ProductItem item={prod} context="listing" enableRateFetching={false} />
                 </div>
               ))}
           </Slider>
@@ -253,7 +253,7 @@ function PopularItems(props: any) {
                   style={{ width: "50%" }}
                   key={index}
                 >
-                  <ProductItem item={prod} />
+                  <ProductItem item={prod} context="listing" enableRateFetching={false} />
                 </Col>
               ))
               : null}
@@ -268,7 +268,7 @@ function PopularItems(props: any) {
               {Array.isArray(props?.data)
                 ? props?.data?.map((prod: any, index: number) => (
                     <Col  className=" p-2 " key={index}>
-                      <ProductItem item={prod} />
+                      <ProductItem item={prod} context="listing" enableRateFetching={false} />
                     </Col>
                   ))
                 : null}

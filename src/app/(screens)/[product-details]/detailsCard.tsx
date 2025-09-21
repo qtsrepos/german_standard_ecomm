@@ -20,8 +20,12 @@ import Variants from "./_components/variants";
 import { getProductRates, getBestProductRate, ProductRate } from "@/util/productRatesApi";
 import { germanStandardApi } from "@/services/germanStandardApi";
 import { useDispatch, useSelector } from "react-redux";
-import { storeCart } from "@/redux/slice/cartSlice";
 import { message } from "antd";
+import {
+  localCartItems,
+  setLocalCart,
+  cartServiceHelpers,
+} from "@/redux/slice/localcartSlice";
 
 function DetailsCard(props: any) {  //to-do
   //functionality of cart,buy now,favourite
@@ -31,7 +35,8 @@ function DetailsCard(props: any) {  //to-do
   const searchParams = useSearchParams();
   const { data: session }: any = useSession();
   const dispatch = useDispatch();
-  const Cart = useSelector((state: any) => state.Cart);
+  // Use unified LocalCart for all users (both authenticated and non-authenticated)
+  const cartItems = useSelector(localCartItems);
   //constant values
   const vid = searchParams.get("vid");
   //states
@@ -39,6 +44,9 @@ function DetailsCard(props: any) {  //to-do
   const [defaultImage, setDefaultImage] = useState<string>(props?.data?.Image || props?.data?.image);
   const [bestRate, setBestRate] = useState<ProductRate | null>(null);
   const [ratesLoading, setRatesLoading] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [rateRetryCount, setRateRetryCount] = useState(0);
+  const [allRatesData, setAllRatesData] = useState<ProductRate[]>([]);
   const [productStock, setProductStock] = useState({ unit: 0, status: false });
   const [stockLoading, setStockLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
@@ -63,90 +71,311 @@ function DetailsCard(props: any) {  //to-do
     }
   }, [props?.data, vid]);
 
-  // Enhanced: Fetch product rates and stock data with passed data optimization
+  // ✅ OPTIMIZED: Use embedded stock and rate data from new API response
   useEffect(() => {
     const fetchProductData = async () => {
       const productId = getProductId(props?.data);
       if (!productId) return;
 
-      // Enhanced: Check for passed data first to avoid redundant API calls
-      const metadata = props?.data?._metadata;
-      console.log("🔍 DetailsCard - Checking for passed data:", {
-        hasMetadata: !!metadata,
-        source: metadata?.source,
-        hasCurrentStock: metadata?.hasCurrentStock,
-        hasCurrentRates: metadata?.hasCurrentRates,
-        isFreshData: metadata?.isFreshData
+      // ✅ UNIVERSAL EMBEDDED RATE HANDLING: If the details received price/retail_rate, use it immediately
+      try {
+        const embeddedRateValue = Number(props?.data?.price || props?.data?.retail_rate || 0);
+        if (!isNaN(embeddedRateValue) && embeddedRateValue > 0) {
+          const finalRateObject: any = {
+            rate: embeddedRateValue,
+            currencyId: 7, // default GS currency
+            unitName: 'Unit',
+            priceBook: 'Embedded',
+            productId: Number(productId),
+            productName: props?.data?.name || props?.data?.Name || 'Product',
+            unit: 1,
+            unitId: 1,
+          };
+
+          setBestRate(finalRateObject);
+          setAllRatesData([finalRateObject]);
+          setRateError(null); // Suppress any error banner when we have a valid price
+          setRatesLoading(false);
+          console.log("✅ Using embedded price/retail_rate across all sources:", finalRateObject);
+          // We do NOT return here so stock/category logic below can still run
+        }
+      } catch (e) {
+        console.warn("⚠️ Embedded rate detection error:", e);
+      }
+
+      console.log("🔍 DetailsCard - Checking for embedded data:", {
+        productId,
+        hasMetadata: !!props?.data?._metadata,
+        source: props?.data?._metadata?.source,
+        hasEmbeddedStock: props?.data?.unit !== undefined,
+        hasEmbeddedRate: props?.data?.price !== undefined || props?.data?.retail_rate !== undefined,
+        stockValue: props?.data?.unit,
+        rateValue: props?.data?.price || props?.data?.retail_rate
       });
 
-      // Enhanced: Use passed stock data if available and fresh
-      if (metadata?.hasCurrentStock && metadata.isFreshData) {
-        console.log("✅ Using passed stock data:", metadata.currentStock);
-        setProductStock(metadata.currentStock);
-        setStockLoading(false);
-      } else {
-        // Fallback: Fetch stock data using German Standard API
-        setStockLoading(true);
-        try {
-          console.log("🔍 Fetching stock for product ID:", productId);
+      // ✅ ENHANCED: Intelligent data source detection for German Standard API
+      const isGermanStandardProduct = props?.data?._metadata?.source?.startsWith('german_standard');
+      const hasEmbeddedData = props?.data?._metadata?.source === 'german_standard_embedded';
+      const hasBasicApiData = props?.data?._metadata?.source === 'german_standard_basic';
+      const hasPassedStock = props?.data?._metadata?.hasCurrentStock;
+      const hasPassedRates = props?.data?._metadata?.hasCurrentRates;
+      const needsStockFetch = props?.data?._metadata?.needsStockFetch && !hasPassedStock;
+      const needsRateFetch = props?.data?._metadata?.needsRateFetch && !hasPassedRates;
 
-          // Use German Standard API service method
-          const stockResponse = await germanStandardApi.getStock({
-            product: Number(productId),
-            warehouse: 2, // Default warehouse - you may need to adjust this
-            be: 1
-          });
+      console.log("🔍 DetailsCard - Enhanced data source analysis:", {
+        isGermanStandardProduct,
+        hasEmbeddedData,
+        hasBasicApiData,
+        hasPassedStock,
+        hasPassedRates,
+        needsStockFetch,
+        needsRateFetch,
+        source: props?.data?._metadata?.source,
+        passedFrom: props?.data?._metadata?.passedFrom,
+        apiCallsMade: props?.data?._metadata?.apiCallsMade,
+        stockValue: props?.data?.unit,
+        rateValue: props?.data?.price || props?.data?.retail_rate,
+        rawDataAvailable: !!props?.data?._metadata?.rawProductData
+      });
 
-          console.log("📦 Stock API response:", stockResponse);
+      // ✅ SMART DATA HANDLING: Use passed data when available, fetch only what's missing
+      if (isGermanStandardProduct && (hasPassedStock || hasPassedRates || hasEmbeddedData)) {
+        console.log("✅ German Standard product with available data - optimizing API calls!");
 
-          if (stockResponse && Array.isArray(stockResponse)) {
-            const stockData = stockResponse[0];
-            if (stockData) {
-              const stockQuantity = stockData.BalQty || 0; // API returns BalQty, not Quantity
-              setProductStock({
-                unit: stockQuantity,
-                status: stockQuantity > 0
-              });
-              console.log("✅ Stock data set:", { unit: stockQuantity, status: stockQuantity > 0 });
-            }
-          } else {
-            console.warn("⚠️ No stock data received or invalid format");
-            setProductStock({ unit: 0, status: false });
+        // Handle stock data intelligently
+        if (hasPassedStock || hasEmbeddedData) {
+          let stockUnit = 0;
+          let stockStatus = false;
+
+          if (props?.data?._metadata?.hasEmbeddedStock) {
+            // Use embedded stock data
+            stockUnit = props.data.unit || props.data._metadata?.stockValue || 0;
+            stockStatus = props.data.status || props.data.inStock || (stockUnit > 0);
+            console.log("📦 Using embedded stock data:", { unit: stockUnit, status: stockStatus });
+          } else if (props?.data?._metadata?.currentStock) {
+            // Use passed currentStock data
+            stockUnit = props.data._metadata.currentStock.unit || 0;
+            stockStatus = props.data._metadata.currentStock.status || false;
+            console.log("📦 Using passed stock data:", { unit: stockUnit, status: stockStatus });
+          } else if (props?.data?.unit !== undefined && props?.data?.unit !== -1) {
+            // Use product's unit data
+            stockUnit = props.data.unit;
+            stockStatus = props.data.status || props.data.inStock || (stockUnit > 0);
+            console.log("📦 Using product unit data:", { unit: stockUnit, status: stockStatus });
           }
-        } catch (error) {
-          console.error("❌ Error fetching stock data:", error);
-          // Set as out of stock on error
-          setProductStock({ unit: 0, status: false });
-        } finally {
+
+          setProductStock({
+            unit: stockUnit,
+            status: stockStatus
+          });
           setStockLoading(false);
+        } else if (needsStockFetch) {
+          // Need to fetch stock data
+          console.log("📦 Stock data needed - will fetch via API");
         }
-      }
 
-      // Enhanced: Use passed rate data if available and fresh
-      if (session?.token) {
-        if (metadata?.hasCurrentRates && metadata.isFreshData) {
-          console.log("✅ Using passed rate data:", metadata.currentRates);
-          setBestRate(metadata.currentBestRate || null);
-          setRatesLoading(false);
+        // ✅ PRIORITY 1: Handle embedded rate data (available to ALL users)
+        if (hasPassedRates || hasEmbeddedData || props?.data?.price > 0 || props?.data?.retail_rate > 0) {
+          let rateValue = 0;
+          let rateObject = null;
+
+          if (props?.data?._metadata?.hasEmbeddedRate || props?.data?.price > 0 || props?.data?.retail_rate > 0) {
+            // Use embedded rate data - available to everyone
+            rateValue = props.data.price || props.data.retail_rate || props.data._metadata?.rateValue || 0;
+            console.log("💰 Using embedded rate data (available to all users):", rateValue);
+          } else if (props?.data?._metadata?.currentBestRate) {
+            // Use passed currentBestRate data
+            rateObject = props.data._metadata.currentBestRate;
+            rateValue = rateObject.rate || 0;
+            console.log("💰 Using passed rate data:", rateObject);
+          }
+
+          if (rateValue > 0) {
+            // Create or use rate object
+            const finalRateObject = rateObject || {
+              rate: rateValue,
+              currencyId: 7, // Assume currency ID 7 for German Standard
+              unitName: 'Unit',
+              priceBook: 'Standard',
+              productId: Number(productId),
+              productName: props.data.name || props.data.Name || 'Product',
+              unit: 1,
+              unitId: 1
+            };
+
+            setBestRate(finalRateObject);
+            setAllRatesData([finalRateObject]);
+            setRateError(null);
+            setRatesLoading(false);
+            console.log("✅ Rate data set from embedded data (all users):", finalRateObject);
+
+            // Early return - we have the data we need
+            return;
+          }
+        }
+
+        // ✅ PRIORITY 2: Fetch live rates via API (authenticated users only)
+        if (session?.token && needsRateFetch) {
+          console.log("💰 No embedded rate data - fetching live rates for authenticated user");
+          // Continue to legacy API fetching below
+        } else if (!session?.token) {
+          // ✅ PRIORITY 3: User not authenticated and no embedded data
+          const embeddedRateValue = Number(props?.data?.price || props?.data?.retail_rate || 0);
+          if (isNaN(embeddedRateValue) || embeddedRateValue <= 0) {
+            console.log("🔐 No embedded rate data and user not authenticated");
+            setRateError("authentication_required");
+            setRatesLoading(false);
+          } else {
+            console.log("✅ Embedded price present for guest user - suppressing rate error");
+          }
+          return;
         } else {
-          // Fallback: Fetch product rates from API
-          setRatesLoading(true);
-          try {
-            const rates = await getProductRates(Number(productId));
-
-            // Get the best rate (INR currency - iCurrency=7)
-            const inrRates = rates.filter(rate => rate.currencyId === 7);
-            const best = inrRates.length > 0 ? inrRates[0] : rates[0];
-            setBestRate(best);
-          } catch (error) {
-            console.error("Error fetching product rates:", error);
-          } finally {
+          // Has session but no need to fetch rates
+          console.log("✅ Authenticated user - no additional rate fetching needed");
+          if (!bestRate) {
+            setBestRate(null);
+            setAllRatesData([]);
+            setRateError("no_rates_available");
             setRatesLoading(false);
           }
+          return;
         }
+
       }
 
-      // Fetch category and tag data using German Standard API
+      // ✅ FALLBACK: Legacy API calls only when embedded data is not available
+      console.log("⚠️ Fallback to legacy API calls - embedded data not available");
+
+      // Legacy stock fetching
+      setStockLoading(true);
+      try {
+        const stockResponse = await germanStandardApi.getStock({
+          product: Number(productId),
+          warehouse: 2,
+          be: 1
+        });
+
+        if (stockResponse && Array.isArray(stockResponse) && stockResponse.length > 0) {
+          const stockData = stockResponse[0];
+          const stockQuantity = stockData.BalQty || 0;
+          setProductStock({
+            unit: stockQuantity,
+            status: stockQuantity > 0
+          });
+          console.log("✅ Legacy stock data set:", { unit: stockQuantity, status: stockQuantity > 0 });
+        } else {
+          setProductStock({ unit: 0, status: false });
+        }
+      } catch (error) {
+        console.error("❌ Legacy stock fetch error:", error);
+        setProductStock({ unit: 0, status: false });
+      } finally {
+        setStockLoading(false);
+      }
+
+      // Legacy rate fetching
+      if (session?.token) {
+        await fetchProductRatesWithRetry(Number(productId));
+      } else {
+        setRateError("authentication_required");
+        setRatesLoading(false);
+      }
+    }
+
+    // Enhanced rate fetching function with retry logic and error handling
+    const fetchProductRatesWithRetry = async (productId: number, attempt: number = 1) => {
+      const maxRetries = 3;
+      setRatesLoading(true);
+      setRateError(null);
+
+      try {
+        console.log(`🔄 [Attempt ${attempt}/${maxRetries}] Fetching rates for product ${productId}`);
+
+        const rates = await getProductRates(productId);
+        console.log("💰 Raw rates response:", rates);
+
+        if (!rates || !Array.isArray(rates)) {
+          throw new Error("Invalid rates response format");
+        }
+
+        // Store all rates data for debugging
+        setAllRatesData(rates);
+
+        if (rates.length === 0) {
+          setRateError("no_rates_available");
+          setBestRate(null);
+          console.log("⚠️ No rates found for product:", productId);
+          return;
+        }
+
+        console.log("💰 All available rates for product:", rates.map(r => ({
+          rate: r.rate,
+          currencyId: r.currencyId,
+          unitName: r.unitName,
+          priceBook: r.priceBook
+        })));
+
+        // Enhanced currency ID 7 handling
+        const currency7Rates = rates.filter(rate => rate.currencyId === 7);
+
+        if (currency7Rates.length > 0) {
+          const bestCurrency7Rate = currency7Rates.sort((a, b) => a.rate - b.rate)[0];
+          setBestRate(bestCurrency7Rate);
+          setRateError(null);
+          console.log("✅ Found currency ID 7 rates:", currency7Rates.length, "Best rate:", bestCurrency7Rate);
+        } else {
+          // Fallback to any available currency
+          const availableCurrencies = Array.from(new Set(rates.map(r => r.currencyId)));
+          console.log("⚠️ No currency ID 7 rates found. Available currencies:", availableCurrencies);
+
+          if (rates.length > 0) {
+            const fallbackRate = rates.sort((a, b) => a.rate - b.rate)[0];
+            setBestRate(fallbackRate);
+            setRateError("currency_fallback");
+            console.log("✅ Using fallback rate:", fallbackRate);
+          } else {
+            setBestRate(null);
+            setRateError("no_rates_available");
+          }
+        }
+
+        // Reset retry count on success
+        setRateRetryCount(0);
+
+      } catch (error: any) {
+        console.error(`❌ [Attempt ${attempt}/${maxRetries}] Rate fetch error:`, {
+          message: error.message,
+          name: error.name,
+          productId,
+          attempt
+        });
+
+        if (attempt < maxRetries) {
+          // Retry with exponential backoff
+          const retryDelay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(`🔄 Retrying in ${retryDelay}ms...`);
+
+          setRateRetryCount(attempt);
+          setTimeout(() => {
+            fetchProductRatesWithRetry(productId, attempt + 1);
+          }, retryDelay);
+          return;
+        } else {
+          // All retries exhausted
+          setRateError("api_error");
+          setBestRate(null);
+          setRateRetryCount(maxRetries);
+          console.error("💥 All retry attempts exhausted for product:", productId);
+        }
+      } finally {
+        if (attempt >= maxRetries || rateError !== "api_error") {
+          setRatesLoading(false);
+        }
+      }
+    };
+
+    // Function to fetch category and tag data using German Standard API
+    const fetchCategoryData = async () => {
       setCategoryLoading(true);
       try {
         console.log("Fetching categories for product");
@@ -154,7 +383,7 @@ function DetailsCard(props: any) {  //to-do
 
         if (categories && categories.length > 0) {
           // Try to find the category that matches the product's category
-          const productCategory = categories.find(cat =>
+          const productCategory = categories.find((cat: any) =>
             cat.Id === props?.data?.categoryId ||
             cat.Name === props?.data?.categoryName
           );
@@ -184,7 +413,9 @@ function DetailsCard(props: any) {  //to-do
       }
     };
 
+    // Execute both data fetching functions
     fetchProductData();
+    fetchCategoryData();
   }, [props?.data?.Id, session?.token]);
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -213,96 +444,72 @@ function DetailsCard(props: any) {  //to-do
     }
   };
 
-  // Helper function to refresh cart data from API
-  const refreshCartFromAPI = async () => {
+  // Helper function to refresh cart data using unified cart service
+  const refreshCartFromService = async () => {
     try {
-      const customerId = getCustomerIdFromSession(session);
-      if (!customerId) return;
+      console.log("🔄 DetailCard: Refreshing cart from unified service...");
 
-      console.log("🔄 DetailCard: Refreshing cart from API...");
+      // Enhanced cart service automatically handles migration and validation
+      const cartItems = await cartServiceHelpers.getCart();
 
-      const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
+      // Update unified LocalCart state for ALL users
+      dispatch(setLocalCart(cartItems));
+      console.log(`✅ DetailCard: Loaded ${cartItems.length} items into unified LocalCart state`);
 
-      if (cartSummary.transactions && cartSummary.transactions.length > 0) {
-        // Transform German Standard cart data to match existing format
-        const transformedCart = cartSummary.transactions.map((item: any) => ({
-          id: item.TransId,
-          productId: item.product || item.productId || 1,
-          quantity: item.qty || 1,
-          price: item.rate || 0,
-          totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
-          name: `Product ${item.product || item.productId}`, // You may need to enhance this
-          image: "/images/no-image.jpg", // Placeholder image
-          unit: 999 // Default stock
-        }));
-
-        console.log("✅ DetailCard: Cart updated with", transformedCart.length, "items");
-        dispatch(storeCart(transformedCart));
-      } else {
-        console.log("📭 DetailCard: No cart items found");
-        dispatch(storeCart([]));
-      }
     } catch (error) {
       console.error("❌ DetailCard: Error refreshing cart:", error);
     }
   };
 
   const handleAddToCart = async (quantity: number = 1) => {
-    if (!session?.token) {
-      router.push("/login");
-      return;
-    }
-
     try {
-      // Get customer ID from session token
-      const customerId = getCustomerIdFromSession(session);
-      if (!customerId) {
-        console.error("Unable to get customer ID from session");
-        router.push("/login");
-        return;
-      }
-
       const productId = getProductId(props?.data);
-
-      // Calculate the proper rate including variant pricing and best rate
       const rate = bestRate?.rate ?? props?.data?.retail_rate ?? props?.data?.price ?? 0;
 
-      const cartRequest = {
-        transId: 0, // 0 for new cart item
-        date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-        customer: customerId, // Dynamic customer ID from JWT token (nameid)
-        warehouse: 2, // Configurable warehouse (default: 2)
-        remarks: "Add to cart", // Required field
-        discountType: 0, // Required field - no discount
-        discountCouponRef: "", // Required field - no coupon
-        discountRef: "", // Required field - no discount reference
-        sampleRequestedBy: 0, // Required field - not a sample
-        product: Number(productId), // Product ID
-        qty: 1, // Always default to 1 as requested
-        rate: rate, // Unit price
-        unit: 1, // Default unit
-        totalRate: rate * 1, // rate * qty (always rate * 1)
-        addCharges: 0, // Required field - no additional charges
-        discount: 0, // Required field - no discount percentage
-        discountAmt: 0, // Required field - no discount amount
-        discountRemarks: "", // Required field - no discount remarks
-        be: 0 // Business Entity (changed from 1 to 0)
+      const productData = {
+        id: productId,
+        productId: productId,
+        name: props?.data?.name || props?.data?.Name,
+        price: rate,
+        image: currentVariant?.image || props?.data?.image || props?.data?.Image,
+        unit: productStock?.unit || 999,
+        status: props?.data?.status,
+        variantId: currentVariant?.id || null,
+        category: props?.data?.category,
+        code: props?.data?.code || props?.data?.Code,
+        description: props?.data?.description || props?.data?.Description,
+        availableQuantity: productStock?.unit || 999,
+        // Additional variant info
+        variantName: currentVariant?.combination?.map((c: any) => c.value).join(' ') || null,
       };
 
-      console.log("🛒 DetailCard: Adding to cart with request:", cartRequest);
-
-      const response = await germanStandardApi.upsertCart(cartRequest);
-
-      console.log("Product added to cart successfully:", response);
-
-      // Update Redux cart state after successful API call
-      await refreshCartFromAPI();
-
-      // Show success message to user
-      message.success({
-        content: "Product added to cart successfully!",
-        duration: 3,
+      console.log("🔍 Adding to cart from details page:", {
+        productName: productData.name,
+        quantity,
+        rate,
+        isAuthenticated: !!session?.token
       });
+
+      const result = await cartServiceHelpers.addToCart(
+        productData,
+        quantity,
+        {
+          source: 'product_details',
+          showNotification: true
+        }
+      );
+
+      if (result.success) {
+        // Refresh cart state
+        const updatedCart = await cartServiceHelpers.getCart();
+        dispatch(setLocalCart(updatedCart));
+
+        // Show success message to user
+        message.success({
+          content: "Product added to cart successfully!",
+          duration: 3,
+        });
+      }
 
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -490,6 +697,8 @@ function DetailsCard(props: any) {  //to-do
               handleAddToWishlist={handleAddToWishlist}
               bestRate={bestRate}
               ratesLoading={ratesLoading}
+              rateError={rateError}
+              rateRetryCount={rateRetryCount}
               productStock={productStock}
               stockLoading={stockLoading}
             />

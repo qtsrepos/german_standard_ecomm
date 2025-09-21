@@ -35,8 +35,15 @@ export interface Product {
  */
 export async function getAllProductRates(): Promise<ProductRate[]> {
   try {
-    // Get authentication token
+    // Get authentication token with enhanced validation
     const token = await getValidAccessToken();
+
+    if (!token) {
+      console.error("❌ No valid authentication token available for rate fetching");
+      return [];
+    }
+
+    console.log("✅ Authentication token obtained for rate fetching, length:", token.length);
 
     // 1. Get all products
     const productsResponse = await fetch(`${API.GERMAN_STANDARD_PRODUCTS}?category=0&subCategory=0&brand=0&type=0&search=`, {
@@ -46,6 +53,7 @@ export async function getAllProductRates(): Promise<ProductRate[]> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token || ""}`,
       },
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     if (!productsResponse.ok) {
@@ -71,6 +79,7 @@ export async function getAllProductRates(): Promise<ProductRate[]> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token || ""}`,
       },
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     if (!unitsResponse.ok) {
@@ -93,13 +102,14 @@ export async function getAllProductRates(): Promise<ProductRate[]> {
     for (const product of products) {
       for (const unit of units) {
         try {
-          const rateResponse = await fetch(`${API.GERMAN_STANDARD_PRODUCT_RATE}?productId=${product.Id}&unitId=${unit.Id}`, {
+          const rateResponse = await fetch(`${API.GERMAN_STANDARD_PRODUCT_RATE}?productId=${product.Id}&unitId=${unit.Id}&currency=7&bE=1`, {
             method: "GET",
             headers: {
               Accept: "application/json",
               "Content-Type": "application/json",
               Authorization: `Bearer ${token || ""}`,
             },
+            signal: AbortSignal.timeout(10000), // 10 second timeout for individual rate requests
           });
 
           if (rateResponse.ok) {
@@ -112,7 +122,7 @@ export async function getAllProductRates(): Promise<ProductRate[]> {
               
               rateArray.forEach((rate: any) => {
                 if (rate && rate.Rate !== undefined) {
-                  allRates.push({
+                  const rateData = {
                     productId: product.Id,
                     productName: product.Name,
                     unitId: unit.Id,
@@ -120,14 +130,24 @@ export async function getAllProductRates(): Promise<ProductRate[]> {
                     rate: rate.Rate,
                     currencyId: rate.iCurrency || 0,
                     priceBook: rate.sPriceBookName || "Default"
-                  });
+                  };
+                  allRates.push(rateData);
+
+                  // Log successful rate retrieval for currency ID 7
+                  if (rate.iCurrency === 7) {
+                    console.log(`✅ Found currency ID 7 rate for product ${product.Id}:`, rateData);
+                  }
                 }
               });
             }
           }
-        } catch (error) {
-          // Skip this combination if rate not found or error occurred
-          console.log(`No rate found for product ${product.Id} with unit ${unit.Id}`);
+        } catch (error: any) {
+          // Enhanced error logging for rate fetching
+          console.log(`❌ Rate fetch failed for product ${product.Id} with unit ${unit.Id}:`, {
+            error: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText
+          });
         }
       }
     }
@@ -155,14 +175,14 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
       return [];
     }
 
-    // Get authentication token
+    // Get authentication token with enhanced validation
     console.log(`🔑 [${debugId}] Getting authentication token...`);
     const token = await getValidAccessToken();
     if (!token) {
-      console.error(`❌ [${debugId}] No authentication token available`);
+      console.error(`❌ [${debugId}] No authentication token available for product rate fetching`);
       return [];
     }
-    console.log(`✅ [${debugId}] Token obtained, length:`, token.length);
+    console.log(`✅ [${debugId}] Token obtained for rate fetching, length:`, token.length, "first 20 chars:", token.substring(0, 20) + "...");
 
     // Get all units first
     const tagListUrl = `${API.GERMAN_STANDARD_TAG_LIST}?be=1`;
@@ -174,6 +194,7 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
+      signal: AbortSignal.timeout(15000), // 15 second timeout
     });
 
     console.log(`📊 [${debugId}] Units API response status:`, unitsResponse.status, unitsResponse.statusText);
@@ -212,16 +233,19 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
       const unitDebugId = `${debugId}-Unit-${unit.Id}`;
 
       try {
-        const rateUrl = `${API.GERMAN_STANDARD_PRODUCT_RATE}?productId=${productId}&unitId=${unit.Id}`;
-        console.log(`💰 [${unitDebugId}] Fetching rate (${i + 1}/${units.length}):`, rateUrl);
+        const rateUrl = `${API.GERMAN_STANDARD_PRODUCT_RATE}?productId=${productId}&unitId=${unit.Id}&currency=7&bE=1`;
+        console.log(`💰 [${unitDebugId}] Fetching rate (${i + 1}/${units.length}) with currency ID 7:`, rateUrl);
+
+        const requestHeaders = {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        };
 
         const rateResponse = await fetch(rateUrl, {
           method: "GET",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: requestHeaders,
+          signal: AbortSignal.timeout(10000), // 10 second timeout for individual rate requests
         });
 
         console.log(`📈 [${unitDebugId}] Rate API response:`, rateResponse.status, rateResponse.statusText);
@@ -254,7 +278,13 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
                 };
                 productRates.push(productRate);
                 successfulRates++;
-                console.log(`✅ [${unitDebugId}] Added rate ${rateIndex + 1}:`, productRate);
+
+                // Enhanced logging for currency ID 7
+                if (rate.iCurrency === 7) {
+                  console.log(`✅ [${unitDebugId}] Currency ID 7 rate found:`, productRate);
+                } else {
+                  console.log(`ℹ️ [${unitDebugId}] Rate with currency ID ${rate.iCurrency}:`, productRate);
+                }
               } else {
                 console.warn(`⚠️ [${unitDebugId}] Invalid rate object:`, rate);
               }
@@ -272,7 +302,13 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
         }
       } catch (error: any) {
         failedUnits++;
-        console.log(`❌ [${unitDebugId}] Rate fetch error:`, error.message);
+        console.log(`❌ [${unitDebugId}] Rate fetch error:`, {
+          error: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          productId: productId,
+          unitId: unit.Id
+        });
       }
     }
 
@@ -297,11 +333,12 @@ export async function getProductRates(productId: number): Promise<ProductRate[]>
 /**
  * Gets the best rate for a product (lowest rate)
  * @param productId - The product ID
+ * @param preferredCurrencyId - Optional preferred currency ID to prioritize
  * @returns Promise<ProductRate | null> - The best rate or null if no rates found
  */
-export async function getBestProductRate(productId: number): Promise<ProductRate | null> {
+export async function getBestProductRate(productId: number, preferredCurrencyId?: number): Promise<ProductRate | null> {
   const debugId = `BestRate-${productId}-${Date.now()}`;
-  console.log(`🏆 [${debugId}] Getting best rate for productId:`, productId);
+  console.log(`🏆 [${debugId}] Getting best rate for productId:`, productId, `preferredCurrency:`, preferredCurrencyId);
 
   try {
     const rates = await getProductRates(productId);
@@ -320,11 +357,31 @@ export async function getBestProductRate(productId: number): Promise<ProductRate
       priceBook: r.priceBook
     })));
 
-    // Sort by rate and return the lowest
+    // If preferred currency is specified, try to find rates for that currency first
+    if (preferredCurrencyId !== undefined) {
+      const preferredCurrencyRates = rates.filter(rate => rate.currencyId === preferredCurrencyId);
+      if (preferredCurrencyRates.length > 0) {
+        const sortedPreferredRates = preferredCurrencyRates.sort((a, b) => a.rate - b.rate);
+        const bestPreferredRate = sortedPreferredRates[0];
+
+        console.log(`✅ [${debugId}] Best rate selected (preferred currency ${preferredCurrencyId}):`, {
+          unitName: bestPreferredRate.unitName,
+          rate: bestPreferredRate.rate,
+          currencyId: bestPreferredRate.currencyId,
+          priceBook: bestPreferredRate.priceBook
+        });
+
+        return bestPreferredRate;
+      } else {
+        console.log(`⚠️ [${debugId}] No rates found for preferred currency ${preferredCurrencyId}, falling back to all currencies`);
+      }
+    }
+
+    // Sort by rate and return the lowest (fallback or no preferred currency)
     const sortedRates = rates.sort((a, b) => a.rate - b.rate);
     const bestRate = sortedRates[0];
 
-    console.log(`✅ [${debugId}] Best rate selected:`, {
+    console.log(`✅ [${debugId}] Best rate selected (any currency):`, {
       unitName: bestRate.unitName,
       rate: bestRate.rate,
       currencyId: bestRate.currencyId,
@@ -334,6 +391,61 @@ export async function getBestProductRate(productId: number): Promise<ProductRate
     return bestRate;
   } catch (error: any) {
     console.error(`💥 [${debugId}] Error in getBestProductRate:`, {
+      message: error.message,
+      name: error.name
+    });
+    return null;
+  }
+}
+
+/**
+ * Gets the best rate for a product with specific currency ID
+ * @param productId - The product ID
+ * @param currencyId - The currency ID to filter by
+ * @returns Promise<ProductRate | null> - The best rate for the specified currency or null if no rates found
+ */
+export async function getBestProductRateForCurrency(productId: number, currencyId: number): Promise<ProductRate | null> {
+  const debugId = `BestRateCurrency-${productId}-${currencyId}-${Date.now()}`;
+  console.log(`🏆 [${debugId}] Getting best rate for productId:`, productId, `currencyId:`, currencyId);
+
+  try {
+    const rates = await getProductRates(productId);
+    console.log(`📈 [${debugId}] Received rates count:`, rates.length);
+
+    if (rates.length === 0) {
+      console.log(`⚠️ [${debugId}] No rates found for product`);
+      return null;
+    }
+
+    // Filter rates by currency ID
+    const currencyRates = rates.filter(rate => rate.currencyId === currencyId);
+
+    if (currencyRates.length === 0) {
+      console.log(`⚠️ [${debugId}] No rates found for currency ${currencyId}`);
+      return null;
+    }
+
+    console.log(`💰 [${debugId}] Currency ${currencyId} rates:`, currencyRates.map(r => ({
+      unitName: r.unitName,
+      rate: r.rate,
+      currencyId: r.currencyId,
+      priceBook: r.priceBook
+    })));
+
+    // Sort by rate and return the lowest
+    const sortedRates = currencyRates.sort((a, b) => a.rate - b.rate);
+    const bestRate = sortedRates[0];
+
+    console.log(`✅ [${debugId}] Best rate selected for currency ${currencyId}:`, {
+      unitName: bestRate.unitName,
+      rate: bestRate.rate,
+      currencyId: bestRate.currencyId,
+      priceBook: bestRate.priceBook
+    });
+
+    return bestRate;
+  } catch (error: any) {
+    console.error(`💥 [${debugId}] Error in getBestProductRateForCurrency:`, {
       message: error.message,
       name: error.name
     });

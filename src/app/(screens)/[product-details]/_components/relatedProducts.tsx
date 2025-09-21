@@ -132,7 +132,7 @@ function RelatedProducts(props: Props) {
                 style={{ width: "50%" }}
                 key={prod.id || index}
               >
-                <ProductItem item={prod} />
+                <ProductItem item={prod} context="details" enableRateFetching={true} />
               </div>
             ))}
           </Slider>

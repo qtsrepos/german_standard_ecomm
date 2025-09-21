@@ -64,15 +64,10 @@ export class TokenRefreshUtil {
     } catch (error) {
       console.error("Token refresh error:", error);
       
-      // If refresh fails, clear tokens and redirect to login
+      // If refresh fails, clear tokens (but don't force redirect)
       store.dispatch(clearToken());
-      
-      // Optionally redirect to login page
-      if (typeof window !== "undefined") {
-        // Use current origin to maintain port and protocol
-        const loginUrl = `${window.location.origin}/login`;
-        window.location.assign(loginUrl);
-      }
+
+      // Let the user continue browsing - they can login when needed
       
       return false;
     } finally {

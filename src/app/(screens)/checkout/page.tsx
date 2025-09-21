@@ -18,7 +18,7 @@ import { storeFinal } from "@/redux/slice/checkoutSlice";
 import { useSession } from "next-auth/react";
 import { useAppSelector } from "@/redux/hooks";
 import { reduxSettings } from "@/redux/slice/settingsSlice";
-import { storeCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 import HeaderBreadcrumbs from "@/app/(user)/cart/_components/headerBreadcrumbs";
 function Checkout() {
   const dispatch = useDispatch();

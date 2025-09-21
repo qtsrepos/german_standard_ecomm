@@ -368,7 +368,7 @@ const ProductByCategory = () => {
                 <Row className="gy-3 py-3">
                   {products?.map((item: any, i: number) => (
                     <Col xs={6} key={i} md="4">
-                      <ProductItem item={item} />
+                      <ProductItem item={item} context="listing" enableRateFetching={false} />
                     </Col>
                   ))}
                 </Row>

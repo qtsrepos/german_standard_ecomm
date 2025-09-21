@@ -29,6 +29,7 @@ import { PiUserCircle } from "react-icons/pi";
 import ProfileMenu from "./profileMenu";
 import dynamic from "next/dynamic";
 import { setCount } from "@/redux/slice/favouriteSlice";
+import { localCartItems } from "@/redux/slice/localcartSlice";
 import { FiHeart } from "react-icons/fi";
 import { MdHome, MdOutlineMailOutline } from "react-icons/md";
 import { BsShopWindow } from "react-icons/bs";
@@ -45,8 +46,8 @@ const CateogreyList = dynamic(() => import("./categoryList"), {
 
 function Header() {
   const Settings = useSelector(reduxSettings);
-  const cart = useSelector((state: any) => state.Cart);
-  const LocalCart = useSelector((state: any) => state.LocalCart);
+  // Use unified LocalCart selector for all users
+  const cartItems = useSelector(localCartItems);
   const pathname = usePathname();
   const { data: user, status }: any = useSession();
   const [issharepopovervisible, setissharepopovervisible] = useState(false);
@@ -54,7 +55,6 @@ function Header() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { data: session }: any = useSession();
-  const cartItems = session?.token ? cart.items : LocalCart.items;
 
 
   // useGetSettings();

@@ -59,6 +59,8 @@ export interface ProductData {
   Description: string | null;
   ExtraDescription: string | null;
   Image: string | null;
+  Stock?: number; // ✅ NEW: Stock quantity from embedded API data
+  Rate?: number;  // ✅ NEW: Rate/price from embedded API data
 }
 
 export interface ProductsResponse {
@@ -423,6 +425,7 @@ export class GermanStandardApiService {
             "accept": "*/*",
             "Content-Type": "application/json",
           },
+          timeout: 30000, // 30 second timeout for login
         }
       );
 
@@ -452,6 +455,7 @@ export class GermanStandardApiService {
             "accept": "text/plain",
             "Authorization": `Bearer ${refreshToken}`,
           },
+          timeout: 20000, // 20 second timeout for token refresh
         }
       );
 
@@ -988,28 +992,90 @@ export class GermanStandardApiService {
 
   /**
    * Transform product data for component compatibility
+   * ✅ FIXED: Handle current API format (no embedded Stock/Rate) and prepare for data passing
    */
   public transformProductsForDisplay(products: ProductData[], categoryId: string, subCategoryId?: string): any[] {
-    return products.map(product => ({
-      id: product.Id?.toString() || "0",
-      _id: product.Id?.toString() || "0",
-      name: product.Name || "Unnamed Product",
-      slug: product.Code?.toLowerCase().replace(/\s+/g, '-') || "",
-      description: product.Description || "",
-      extraDescription: product.ExtraDescription || "",
-      image: product.Image || "/images/no-image.jpg",
-      images: product.Image ? [product.Image] : [],
-      // Default values for compatibility with existing components
-      price: 0,
-      originalPrice: 0,
-      discount: 0,
-      inStock: true,
-      // ✅ FIX: Add status field - default to true for German Standard products
-      // since German Standard API doesn't provide status field, we assume products returned are available
-      status: true,
-      category: categoryId,
-      subCategory: subCategoryId || "",
-    }));
+    console.log("🔄 Transforming products from German Standard API:", {
+      productCount: products.length,
+      apiHasStockData: products.some(p => p.Stock !== undefined),
+      apiHasRateData: products.some(p => p.Rate !== undefined),
+      sampleProduct: products[0] ? {
+        id: products[0].Id,
+        name: products[0].Name,
+        code: products[0].Code,
+        hasStock: products[0].Stock !== undefined,
+        hasRate: products[0].Rate !== undefined
+      } : null
+    });
+
+    return products.map(product => {
+      // ✅ REALITY CHECK: Current API doesn't include Stock/Rate, so handle accordingly
+      const hasEmbeddedStock = product.Stock !== undefined;
+      const hasEmbeddedRate = product.Rate !== undefined;
+      const stockQuantity = hasEmbeddedStock ? Number(product.Stock) : undefined;
+      const ratePrice = hasEmbeddedRate ? Number(product.Rate) : undefined;
+
+      console.log(`📦 Product ${product.Id}: HasStock=${hasEmbeddedStock}, HasRate=${hasEmbeddedRate}, Stock=${stockQuantity}, Rate=${ratePrice}`);
+
+      // Generate a proper slug for navigation
+      const productSlug = product.Code ?
+        product.Code.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-+/g, '-') // Replace multiple hyphens with single
+          .trim() :
+        `product-${product.Id}`;
+
+      return {
+        id: product.Id?.toString() || "0",
+        _id: product.Id?.toString() || "0",
+        name: product.Name || "Unnamed Product",
+        slug: productSlug,
+        description: product.Description || "",
+        extraDescription: product.ExtraDescription || "",
+        image: product.Image || "/images/no-image.jpg",
+        images: product.Image ? [product.Image] : [],
+
+        // ✅ FIXED: Handle pricing based on whether embedded rate exists
+        price: ratePrice || 0,
+        retail_rate: ratePrice || 0,
+        originalPrice: ratePrice || 0,
+        discount: 0,
+
+        // ✅ FIXED: Handle stock based on whether embedded stock exists
+        unit: stockQuantity !== undefined ? stockQuantity : -1, // -1 indicates "needs fetching"
+        inStock: stockQuantity !== undefined ? stockQuantity > 0 : true, // Assume available until proven otherwise
+        status: stockQuantity !== undefined ? stockQuantity > 0 : true,
+
+        // Category information
+        category: categoryId,
+        subCategory: subCategoryId || "",
+
+        // ✅ ENHANCED: Accurate metadata based on actual API response
+        _metadata: {
+          source: hasEmbeddedStock && hasEmbeddedRate ? 'german_standard_embedded' : 'german_standard_basic',
+          hasEmbeddedStock,
+          hasEmbeddedRate,
+          stockValue: stockQuantity,
+          rateValue: ratePrice,
+          transformedAt: new Date().toISOString(),
+          isFreshData: hasEmbeddedStock && hasEmbeddedRate,
+          needsStockFetch: !hasEmbeddedStock,
+          needsRateFetch: !hasEmbeddedRate,
+          // ✅ NEW: Include raw product data for passing to details page
+          rawProductData: {
+            Id: product.Id,
+            Name: product.Name,
+            Code: product.Code,
+            Description: product.Description,
+            ExtraDescription: product.ExtraDescription,
+            Image: product.Image,
+            ...(hasEmbeddedStock && { Stock: product.Stock }),
+            ...(hasEmbeddedRate && { Rate: product.Rate })
+          }
+        }
+      };
+    });
   }
 
   /**
@@ -1497,11 +1563,11 @@ export class GermanStandardApiService {
       const headers = await this.getAuthHeaders();
       
       const params = new URLSearchParams();
-      params.append('product', request.product.toString());
-      if (request.unit !== undefined) params.append('unit', request.unit.toString());
+      params.append('productId', request.product.toString());
+      if (request.unit !== undefined) params.append('unitId', request.unit.toString());
       if (request.currency !== undefined) params.append('currency', request.currency.toString());
       if (request.account !== undefined) params.append('account', request.account.toString());
-      if (request.be !== undefined) params.append('be', request.be.toString());
+      params.append('bE', request.be !== undefined ? request.be.toString() : '1');
 
       const url = `${API.GERMAN_STANDARD_PRODUCT_RATE}?${params.toString()}`;
       console.log("Fetching product rate:", url);

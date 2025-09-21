@@ -5,7 +5,7 @@
 // import { Popconfirm } from "antd";
 // import { useDispatch, useSelector } from "react-redux";
 // import API from "../../config/API";
-// import { storeCart, clearCart } from "../../redux/slice/cartSlice";
+// // Removed legacy cartSlice import
 // import {
 //   clearLocalCart,
 //   increaseLocalCartQuantity,
@@ -36,7 +36,7 @@
 //   const [loading, setLoading] = useState(true);
 
 //   const dispatch = useDispatch();
-//   const Cart = useSelector((state: any) => state.Cart);
+//   // Removed legacy Cart selector
 //   const LocalCart = useSelector(
 //     (state: any) => state.LocalCart || { items: [] }
 //   );
@@ -162,7 +162,7 @@
 //         const response: any = await DELETE(API.CART_CLEAR_ALL);
 //         if (response?.status) {
 //           notification.success({ message: response?.message });
-//           dispatch(clearCart());
+//           // Removed legacy clearCart dispatch
 //         } else {
 //           notification.error({ message: response?.message });
 //         }
@@ -372,12 +372,11 @@ import { IoCartOutline, IoCloseCircleOutline } from "react-icons/io5";
 import { Popconfirm } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import API from "../../config/API";
-import { storeCart, clearCart } from "../../redux/slice/cartSlice";
+// Removed legacy cartSlice import
 import {
-  clearLocalCart,
-  increaseLocalCartQuantity,
-  decreaseLocalCartQuantity,
-  removeFromLocalCart,
+  localCartItems,
+  setLocalCart,
+  cartServiceHelpers,
 } from "../../redux/slice/localcartSlice";
 import { useSession } from "next-auth/react";
 import CartItem from "../../app/(user)/cart/_components/cartItem";
@@ -391,8 +390,6 @@ import { checkoutCartItems } from "@/app/(user)/cart/_components/checkoutFunctio
 import "./styles.scss";
 import SummaryCardDrawer from "@/app/(user)/cart/_components/summeryCardDrawer";
 import CartItemDrawer from "@/app/(user)/cart/_components/cartItemsDrawer";
-import { germanStandardApi } from "@/services/germanStandardApi";
-import { getCustomerIdFromSession } from "@/shared/helpers/jwtUtils";
 
 interface CartDrawerProps {
   showDrawer: boolean;
@@ -409,20 +406,15 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const [isUpdating, setIsUpdating] = useState(false); // New state for quantity updates
 
   const dispatch = useDispatch();
-  const Cart = useSelector((state: any) => state.Cart);
-  const LocalCart = useSelector(
-    (state: any) => state.LocalCart || { items: [] }
-  );
+  // Use unified LocalCart for all users (both authenticated and non-authenticated)
+  const cartItems = useSelector(localCartItems);
   const Settings = useSelector((state: any) => state.Settings.Settings);
   const { status, data: session } = useSession();
   const navigate = useRouter();
 
-  const cartItems = session ? Cart.items : LocalCart.items;
-
   const onShowDrawer = () => {
     setOpenDrawer(true);
     loadData();
-    // getRecommendations();
     dispatch(clearCheckout());
   };
 
@@ -453,148 +445,26 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   //   }
   // };
 
-  const mergeLocalCartWithBackend = async (backendCart: any[]) => {
-    try {
-      const localCartItems = LocalCart.items || [];
-      if (localCartItems.length === 0) {
-        dispatch(storeCart(backendCart));
-        return;
-      }
-      const mergedCart = [...backendCart];
-      for (const localItem of localCartItems) {
-        const existingItemIndex = mergedCart.findIndex(
-          (item) => item.productId === localItem.productId
-        );
-        if (existingItemIndex !== -1) {
-          mergedCart[existingItemIndex].quantity += localItem.quantity;
-          mergedCart[existingItemIndex].totalPrice =
-            mergedCart[existingItemIndex].price *
-            mergedCart[existingItemIndex].quantity;
-        } else {
-          mergedCart.push(localItem);
-        }
-      }
-
-      // Use German Standard API for cart operations
-      for (const item of mergedCart) {
-        // if (item.id) {
-        //   await PUT(API.CART + item.id, { quantity: item.quantity });
-        // } else {
-        //   await POST(API.CART, {
-        //     productId: item.productId,
-        //     quantity: item.quantity,
-        //     price: item.price,
-        //   });
-        try {
-          const cartRequest = {
-            transId: item.id || 0, // 0 for new cart item
-            date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-            customer: 1, // TODO: Get from session JWT token
-            warehouse: 2, // Configurable warehouse (default: 2)
-            remarks: "Cart sync", // Required field
-            discountType: 0, // Required field - no discount
-            discountCouponRef: "", // Required field - no coupon
-            discountRef: "", // Required field - no discount reference
-            sampleRequestedBy: 0, // Required field - not a sample
-            product: Number(item.productId),
-            qty: 1, // Always default to 1 as requested
-            rate: item.price || 0,
-            unit: 1, // Default unit
-            totalRate: (item.price || 0) * 1, // rate * qty (always rate * 1)
-            addCharges: 0, // Required field - no additional charges
-            discount: 0, // Required field - no discount percentage
-            discountAmt: 0, // Required field - no discount amount
-            discountRemarks: "", // Required field - no discount remarks
-            be: 0 // Business Entity (changed from 1 to 0)
-          };
-          
-          await germanStandardApi.upsertCart(cartRequest);
-        } catch (error) {
-          console.error("Error updating cart item:", error);
-        }
-      }
-
-      dispatch(storeCart(mergedCart));
-      dispatch(clearLocalCart());
-      localStorage.removeItem("cart_items");
-      notification.success({
-        message:
-          "Your products have been successfully added by the guest user to your account",
-      });
-    } catch (err) {
-      console.error("Error merging cart:", err);
-      notification.error({
-        message: "Failed to merge local cart with account",
-      });
-    }
-  };
 
   const loadData = async () => {
     try {
       setLoading(true);
-      if (session) {
-        // Get customer ID from session token
-        const customerId = getCustomerIdFromSession(session);
-        if (!customerId) {
-          console.error("CartDrawer: Unable to get customer ID from session");
-          dispatch(storeCart([]));
-          return;
-        }
 
-        // Use German Standard API for cart data
-        try {
-          console.log("🔄 CartDrawer: Loading cart data for customer:", customerId);
-          const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
+      // 🔄 STATE MANAGEMENT ONLY: Load cart from enhanced local storage for ALL users
+      console.log("🛍️ CartDrawer: Loading cart from local storage (state management only)...");
 
-          if (cartSummary.transactions && cartSummary.transactions.length > 0) {
-            console.log("✅ CartDrawer: Found", cartSummary.transactions.length, "cart items");
-            // Transform German Standard cart data to match existing format
-            const transformedCart = cartSummary.transactions.map((item: any) => ({
-              id: item.TransId,
-              productId: item.product || item.productId || 1,
-              quantity: item.qty || 1,
-              price: item.rate || 0,
-              totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
-              name: `Product ${item.product || item.productId}`, // TODO: Get actual product name
-              image: "/images/no-image.jpg", // TODO: Get actual product image
-              unit: 999, // Default available units
-              variantId: null // No variants for now
-            }));
+      // Enhanced cart service automatically handles migration and validation
+      const cartItems = await cartServiceHelpers.getCart();
 
-            dispatch(storeCart(transformedCart));
-            console.log("🛒 CartDrawer: Cart state updated with", transformedCart.length, "items");
-          } else {
-            console.log("📭 CartDrawer: No cart items found for customer");
-            dispatch(storeCart([]));
-          }
-        } catch (error) {
-          console.error("❌ CartDrawer: Error fetching cart from German Standard API:", error);
-          dispatch(storeCart([]));
-        }
-      } else {
-        console.log("👤 CartDrawer: User not logged in, using local cart");
-      }
-
-      // if (session) {
-      //   const cartItemsResponse: any = await GET(API.CART_GET_ALL);
-      //   if (cartItemsResponse.status) {
-      //     const backendCart = cartItemsResponse.data || [];
-      //     await mergeLocalCartWithBackend(backendCart);
-      //   } else {
-      //     await mergeLocalCartWithBackend([]);
-      //     notification.warning({
-      //       message: "No cart data from server, merging local cart",
-      //     });
-      //   }
-      // }
+      // Update unified LocalCart state for ALL users
+      dispatch(setLocalCart(cartItems));
+      console.log(`✅ CartDrawer: Loaded ${cartItems.length} items into unified LocalCart state`);
 
     } catch (err) {
-      console.error("❌ CartDrawer: Critical error in loadData:", err);
+      console.error("❌ CartDrawer: Cart load error:", err);
       notification.error({
-        message: "Failed to load cart data. Please refresh the page.",
+        message: "Failed to load cart. Please refresh the page.",
       });
-      // Keep existing cart data in case of critical error
-      // dispatch(storeCart(Cart.items || []));
     } finally {
       setLoading(false);
     }
@@ -606,7 +476,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   //       const response: any = await DELETE(API.CART_CLEAR_ALL);
   //       if (response?.status) {
   //         notification.success({ message: response?.message });
-  //         dispatch(clearCart());
+  //         // Removed legacy clearCart dispatch
   //       } else {
   //         notification.error({ message: response?.message });
   //       }
@@ -619,7 +489,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   //   }
   // };
 
-  // Fixed updateQuantity function
   const updateQuantity = async (action: "add" | "reduce", item: any) => {
     try {
       // Stock validation
@@ -633,176 +502,117 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         return;
       }
 
-      // Prevent multiple simultaneous updates
+      // Prevent multiple updates
       if (isUpdating) return;
-      
       setIsUpdating(true);
 
-      if (session) {
-        // For logged-in users - optimistic update + API call
-        const newQuantity = action === "add" ? item.quantity + 1 : item.quantity - 1;
-        
-        // Optimistic update to Redux store for immediate UI feedback
-        const updatedItems = Cart.items.map((cartItem: any) => {
-          if (cartItem.id === item.id) {
-            const updatedItem = {
-              ...cartItem,
-              quantity: newQuantity,
-              totalPrice: cartItem.price * newQuantity
-            };
-            return updatedItem;
-          }
-          return cartItem;
-        });
-
-        // Update Redux store immediately
-        dispatch(storeCart(updatedItems));
-
-        // Make API call using German Standard API
-        try {
-          const cartRequest = {
-            transId: item.id || 0,
-            date: new Date().toISOString().split('T')[0],
-            customer: 1, // TODO: Get from session JWT token
-            warehouse: 2, // Configurable warehouse (default: 2)
-            remarks: "Quantity update", // Required field
-            discountType: 0, // Required field - no discount
-            discountCouponRef: "", // Required field - no coupon
-            discountRef: "", // Required field - no discount reference
-            sampleRequestedBy: 0, // Required field - not a sample
-            product: Number(item.productId),
-            qty: 1, // Always default to 1 as requested
-            rate: item.price || 0,
-            unit: 1,
-            totalRate: (item.price || 0) * 1, // rate * qty (always rate * 1)
-            addCharges: 0, // Required field - no additional charges
-            discount: 0, // Required field - no discount percentage
-            discountAmt: 0, // Required field - no discount amount
-            discountRemarks: "", // Required field - no discount remarks
-            be: 0 // Business Entity (changed from 1 to 0)
-          };
-          
-          await germanStandardApi.upsertCart(cartRequest);
-          // Refresh data from server to ensure consistency
-          await loadData();
-        } catch (apiError) {
-          // Revert optimistic update if API call failed
-          dispatch(storeCart(Cart.items));
-          notification.error({ message: "Failed to update quantity" });
-        }
-
-        //  // Make API call
-        //  const cartResponse: any = await PUT(
-        //   API.CART + item?.id + `?action=${action}`,
-        //   {}
-        // );
-        
-        // if (cartResponse.status) {
-        //   // Refresh data from server to ensure consistency
-        //   await loadData();
-        // } else {
-        //   // Revert optimistic update if API call failed
-        //   dispatch(storeCart(Cart.items));
-        //   notification.error({ message: cartResponse?.message ?? "Failed to update quantity" });
-        // }
-
-      } else {
-        // For guest users - Redux actions only
-        const payload = {
-          productId: item.productId,
-          variantId: item.variantId || null,
-        };
-        
+      // 🔄 STATE MANAGEMENT ONLY: Use enhanced cart service for ALL users
+      try {
         if (action === "add") {
-          dispatch(increaseLocalCartQuantity(payload));
+          const result = await cartServiceHelpers.updateQuantity(
+            item.productId,
+            item.variantId || null,
+            item.quantity + 1,
+            { showNotification: true }
+          );
+          if (result.success) {
+            // Sync with Redux state
+            const updatedCart = await cartServiceHelpers.getCart();
+            dispatch(setLocalCart(updatedCart));
+          }
         } else if (action === "reduce") {
           if (item.quantity > 1) {
-            dispatch(decreaseLocalCartQuantity(payload));
+            const result = await cartServiceHelpers.updateQuantity(
+              item.productId,
+              item.variantId || null,
+              item.quantity - 1,
+              { showNotification: true }
+            );
+            if (result.success) {
+              // Sync with Redux state
+              const updatedCart = await cartServiceHelpers.getCart();
+              dispatch(setLocalCart(updatedCart));
+            }
           } else {
             // Remove item if quantity becomes 0
-            dispatch(removeFromLocalCart(payload));
+            const result = await cartServiceHelpers.removeFromCart(
+              item.productId,
+              item.variantId || null,
+              { showNotification: true }
+            );
+            if (result.success) {
+              // Sync with Redux state
+              const updatedCart = await cartServiceHelpers.getCart();
+              dispatch(setLocalCart(updatedCart));
+            }
           }
         }
+      } catch (error) {
+        notification.error({ message: "Failed to update cart" });
       }
     } catch (err) {
-      console.error("Error updating quantity:", err);
-      notification.error({ message: "Failed to update cart" });
-      
-      // Revert optimistic update if there was an error
-      if (session) {
-        await loadData();
-      }
+      notification.error({ message: "Failed to Update cart" });
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const removeItem = async (id: number|string, item: any) => {
+  const removeItem = async (id: number | string, item: any) => {
     try {
-      setIsUpdating(true);
-      
-      if (session) {
-        // Optimistic removal for immediate UI feedback
-        const updatedItems = Cart.items.filter((cartItem: any) => cartItem.id !== id);
-        dispatch(storeCart(updatedItems));
+      // 🔄 STATE MANAGEMENT ONLY: Use enhanced cart service for ALL users
+      const result = await cartServiceHelpers.removeFromCart(
+        item.productId,
+        item.variantId || null,
+        { showNotification: true }
+      );
 
-        // const url = API.CART + id;
-        // const cartItems: any = await DELETE(url);
-        
-        // if (cartItems.status) {
-        //   notification.success({
-        //     message: "You have removed Product from cart",
-        //   });
-        //   // Refresh data to ensure consistency
-        //   await loadData();
-        // } else {
-        //   // Revert optimistic update if API call failed
-        //   await loadData();
-        //   notification.error({ message: "Failed to remove item" });
-        // }
+      if (result.success) {
+        // Update appropriate Redux state based on user session
+        const updatedCart = await cartServiceHelpers.getCart();
+
+        // Update unified LocalCart state for ALL users
+        dispatch(setLocalCart(updatedCart));
+
+        console.log("✅ Item removed successfully from cart");
       } else {
-        dispatch(
-          removeFromLocalCart({
-            productId: item.productId,
-            variantId: item.variantId || null,
-          })
-        );
-        notification.success({
-          message: "You have removed Product from cart",
-        });
+        notification.error({ message: "Failed to remove item from cart" });
       }
     } catch (err) {
-      console.error("Error removing item:", err);
+      console.error("❌ Error removing item from cart:", err);
       notification.error({ message: "Failed to remove item from cart" });
-      
-      // Revert optimistic update if there was an error
-      if (session) {
-        await loadData();
-      }
-    } finally {
-      setIsUpdating(false);
     }
   };
 
   const goCheckout = async () => {
     try {
       if (!session) {
-        const itemsToCheckout = LocalCart.items;
-        localStorage.setItem("checkout_items", JSON.stringify(itemsToCheckout));
+        try {
+          const itemsToCheckout = cartItems;
+          localStorage.setItem(
+            "checkout_items",
+            JSON.stringify(itemsToCheckout)
+          );
+        } catch (error) {
+          console.error("Error storing checkout data in localStorage:", error);
+        }
         navigate.push("/login");
         return;
       }
 
       setError(null);
-      const itemsToCheckout = Cart.items;
+      const itemsToCheckout = cartItems;
 
-      const data: any = await checkoutCartItems(itemsToCheckout);
+      var data: any = await checkoutCartItems(itemsToCheckout);
       if (data?.eligibleItems?.length) {
         dispatch(storeCheckout(data?.eligibleItems));
-        localStorage.setItem(
-          "checkout_items",
-          JSON.stringify(data?.eligibleItems)
-        );
+        try {
+          localStorage.setItem(
+            "checkout_items",
+            JSON.stringify(data?.eligibleItems)
+          );
+        } catch (error) {
+          console.error("Error storing checkout data in localStorage:", error);
+        }
         navigate.push("/checkout");
       } else {
         setError(
@@ -810,7 +620,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         );
       }
     } catch (err) {
-      console.log("err", err);
+      setError("Something went wrong. Please try again.");
+      console.error("Checkout error:", err);
     }
   };
 
@@ -874,7 +685,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             }}
           >
             <SummaryCardDrawer
-              Cart={{ ...Cart, items: cartItems }}
+              Cart={{ items: cartItems }}
               checkout={() => goCheckout()}
               error={error}
               onClose={onClose}

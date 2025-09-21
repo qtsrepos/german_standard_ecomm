@@ -11,7 +11,7 @@ import { clearCheckout } from "@/redux/slice/checkoutSlice";
 import { GET, POST } from "@/util/apicall";
 import API from "@/config/API";
 import { germanStandardApi } from "@/services/germanStandardApi";
-import { storeCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAppSelector } from "@/redux/hooks";
 import { reduxSettings } from "@/redux/slice/settingsSlice";

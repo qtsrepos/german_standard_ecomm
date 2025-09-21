@@ -1,7 +1,7 @@
 import { clearToken } from "@/redux/slice/authSlice";
-import { clearCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 
 export const clearReduxData = (dispatch: any) => {
-  dispatch(clearCart());
+  // Removed legacy clearCart dispatch
   dispatch(clearToken());
 };

@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import API from "@/config/API";
 import { POST, GET } from "@/util/apicall";
-import { storeCart } from "@/redux/slice/cartSlice";
+// Removed legacy cartSlice import
 import { notification } from "antd";
 import { clearLocalCart } from "@/redux/slice/localcartSlice";
 import { useEffect } from "react";

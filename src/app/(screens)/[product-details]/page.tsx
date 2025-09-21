@@ -11,49 +11,85 @@ import './style.scss'
 function getProductDataFromParams(searchParams: any) {
   console.log("🔍 Getting product data from params:", searchParams);
 
-  // ENHANCED: Check if we have complete product data passed via URL parameters
+  // ✅ ENHANCED: Check if we have complete product data passed via URL parameters or sessionStorage
   if (searchParams?.productData) {
     try {
       const productData = JSON.parse(decodeURIComponent(searchParams.productData));
       console.log("✅ Found product data in URL params:", productData);
 
-      // Enhanced: Check data source and freshness
-      const dataSource = productData.source || 'unknown';
+      // ✅ NEW: Handle sessionStorage fallback for large data
+      if (productData.sessionStorageKey) {
+        console.log("🔄 Loading large data from sessionStorage:", productData.sessionStorageKey);
+        const storedData = sessionStorage.getItem(productData.sessionStorageKey);
+        if (storedData) {
+          const fullProductData = JSON.parse(storedData);
+          console.log("✅ Retrieved full product data from sessionStorage");
+          // Clean up sessionStorage after use
+          sessionStorage.removeItem(productData.sessionStorageKey);
+          // Use the full data instead of the minimal data
+          Object.assign(productData, fullProductData);
+        } else {
+          console.warn("⚠️ SessionStorage key not found, using minimal data");
+        }
+      }
+
+      // ✅ ENHANCED: Better detection of embedded data from new API response
+      const dataSource = productData._metadata?.source || productData.source || 'unknown';
       const fetchedAt = productData.fetchedAt;
       const passedAt = productData.passedAt;
+      const hasEmbeddedData = dataSource === 'german_standard_embedded';
+      const hasEmbeddedStock = productData._metadata?.hasEmbeddedStock || (productData.unit !== undefined);
+      const hasEmbeddedRate = productData._metadata?.hasEmbeddedRate || (productData.price !== undefined || productData.retail_rate !== undefined);
 
       console.log("📊 Product data metadata:", {
         source: dataSource,
         fetchedAt,
         passedAt,
-        hasCurrentStock: !!productData.currentStock,
-        hasCurrentRates: !!productData.currentRates,
-        hasFullApiData: dataSource === 'german_standard_api'
+        hasEmbeddedData,
+        hasEmbeddedStock,
+        hasEmbeddedRate,
+        hasCurrentStock: !!productData.currentStock || !!productData._metadata?.currentStock,
+        hasCurrentRates: !!productData.currentRates || !!productData._metadata?.currentRates,
+        hasCurrentBestRate: !!productData.currentBestRate || !!productData._metadata?.currentBestRate,
+        stockValue: productData.unit || productData._metadata?.stockValue,
+        rateValue: productData.price || productData.retail_rate || productData._metadata?.rateValue,
+        passedFrom: productData._metadata?.passedFrom
       });
 
-      // Enhanced: Check if data is fresh (within last 5 minutes for search data)
-      const dataAge = fetchedAt ? (Date.now() - new Date(fetchedAt).getTime()) / 1000 / 60 : Infinity;
-      const isFreshData = dataAge < 5; // 5 minutes
+      // Enhanced: Check if data is fresh (embedded data is always fresh, others within 5 minutes)
+      const dataAge = fetchedAt ? (Date.now() - new Date(fetchedAt).getTime()) / 1000 / 60 : 0;
+      const isFreshData = hasEmbeddedData || dataAge < 5; // Embedded data is always fresh
 
-      console.log(`⏰ Data age: ${dataAge.toFixed(1)} minutes, fresh: ${isFreshData}`);
+      console.log(`⏰ Data freshness: ${hasEmbeddedData ? 'Embedded (always fresh)' : `${dataAge.toFixed(1)} minutes old`}, fresh: ${isFreshData}`);
 
       // Enhanced standardization with metadata preservation
       const standardizedData = standardizeProductData(productData);
 
-      // Add metadata for optimization decisions
+      // ✅ ENHANCED: Add comprehensive metadata for optimization decisions
       standardizedData._metadata = {
         source: dataSource,
         fetchedAt,
         passedAt,
         dataAge,
         isFreshData,
-        hasCurrentStock: !!productData.currentStock,
-        hasCurrentRates: !!productData.currentRates,
-        currentStock: productData.currentStock,
-        currentRates: productData.currentRates,
-        currentBestRate: productData.currentBestRate,
+        // ✅ NEW: Enhanced embedded data tracking
+        hasEmbeddedData,
+        hasEmbeddedStock,
+        hasEmbeddedRate,
+        stockValue: productData.unit || productData._metadata?.stockValue,
+        rateValue: productData.price || productData.retail_rate || productData._metadata?.rateValue,
+        passedFrom: productData._metadata?.passedFrom,
+        // Legacy current data support
+        hasCurrentStock: !!productData.currentStock || !!productData._metadata?.currentStock,
+        hasCurrentRates: !!productData.currentRates || !!productData._metadata?.currentRates,
+        currentStock: productData.currentStock || productData._metadata?.currentStock,
+        currentRates: productData.currentRates || productData._metadata?.currentRates,
+        currentBestRate: productData.currentBestRate || productData._metadata?.currentBestRate,
+        // Search context (if applicable)
         searchQuery: productData.searchQuery,
-        pageInfo: productData.pageInfo
+        pageInfo: productData.pageInfo,
+        // ✅ NEW: Preserve original metadata if it exists
+        ...productData._metadata
       };
 
       return standardizedData;
@@ -63,7 +99,7 @@ function getProductDataFromParams(searchParams: any) {
     }
   }
 
-  // Fallback: Check individual parameters
+  // ✅ ENHANCED: Fallback with emergency parameter detection
   if (searchParams?.pid && searchParams?.name) {
     const productData = {
       Id: parseInt(searchParams.pid),
@@ -73,9 +109,31 @@ function getProductDataFromParams(searchParams: any) {
       Description: searchParams.description || '',
       ExtraDescription: searchParams.extraDescription || '',
       Image: searchParams.image || '',
-      Code: searchParams.code || ''
+      Code: searchParams.code || '',
+
+      // ✅ NEW: Handle emergency stock/price data if available
+      ...(searchParams.stock && {
+        unit: parseInt(searchParams.stock),
+        status: parseInt(searchParams.stock) > 0,
+        inStock: parseInt(searchParams.stock) > 0
+      }),
+      ...(searchParams.price && {
+        price: parseFloat(searchParams.price),
+        retail_rate: parseFloat(searchParams.price)
+      }),
+
+      // Add metadata for emergency fallback
+      _metadata: {
+        source: 'emergency_params',
+        hasEmbeddedStock: !!searchParams.stock,
+        hasEmbeddedRate: !!searchParams.price,
+        stockValue: searchParams.stock ? parseInt(searchParams.stock) : undefined,
+        rateValue: searchParams.price ? parseFloat(searchParams.price) : undefined,
+        passedFrom: 'emergency_navigation',
+        isFreshData: !!(searchParams.stock || searchParams.price)
+      }
     };
-    console.log("✅ Constructed product data from individual params:", productData);
+    console.log("✅ Constructed product data from individual/emergency params:", productData);
 
     const standardizedData = standardizeProductData(productData);
     standardizedData._metadata = {

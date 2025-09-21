@@ -12,18 +12,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { FiPackage } from "react-icons/fi";
 import { useSession } from "next-auth/react";
+import { localCartItems } from "@/redux/slice/localcartSlice";
 
-interface CartItem {
-  id: string;
-}
-
-interface CartState {
-  items: CartItem[];
-}
-
-interface RootState {
-  Cart: CartState;
-}
+// Removed legacy Cart type definitions - using unified LocalCart
 
 const MobileNavigation: React.FC = () => {
   const [isCartAnimating, setIsCartAnimating] = useState<boolean>(false);
@@ -31,9 +22,8 @@ const MobileNavigation: React.FC = () => {
   const pathname = usePathname();
   const { data: session }: any = useSession();
   
-  const cart = useSelector((state: RootState) => state.Cart);
-  const LocalCart = useSelector((state: any) => state.LocalCart)
-  const cartItems = session?.token ? cart.items : LocalCart.items;
+  // Use unified LocalCart for all users (both authenticated and non-authenticated)
+  const cartItems = useSelector(localCartItems);
 //   const wishlistCount = useSelector((state: any) => state.Favorites.count);
 //   console.log("wishlistCount", wishlistCount);
 
@@ -104,13 +94,13 @@ const MobileNavigation: React.FC = () => {
     },
   };
   useEffect(() => {
-    if (cart.items.length > 0) {
+    if (cartItems.length > 0) {
       setIsCartAnimating(true);
 
       const timer = setTimeout(() => setIsCartAnimating(false), 300);
       return () => clearTimeout(timer);
     }
-  }, [cart.items.length]);
+  }, [cartItems.length]);
   return (
     <div style={styles.navigationContainer}>
       <div style={styles.navigationWrapper}>

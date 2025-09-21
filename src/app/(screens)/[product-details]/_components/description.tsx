@@ -7,15 +7,18 @@ import { Button, notification, message } from "antd";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AiOutlineMinus, AiOutlinePlus } from "react-icons/ai";
-// import { FaHeart } from "react-icons/fa6";
 import { useDispatch, useSelector } from "react-redux";
 import { storeCheckout } from "../../../../redux/slice/checkoutSlice";
 import { germanStandardApi } from "@/services/germanStandardApi";
 import { useSession } from "next-auth/react";
 import { decrement, increment } from "@/redux/slice/favouriteSlice";
-import { addToLocalCart } from "@/redux/slice/localcartSlice";
+import {
+  LocalCartSlice,
+  cartServiceHelpers,
+  localCartItems,
+  setLocalCart,
+} from "@/redux/slice/localcartSlice";
 import "../style.scss";
-import { storeCart } from "@/redux/slice/cartSlice";
 import { CiHeart, CiShuffle } from "react-icons/ci";
 import { HiOutlineShoppingBag } from "react-icons/hi";
 import { IoMdHeartEmpty } from "react-icons/io";
@@ -30,6 +33,8 @@ type Props = {
   handleAddToWishlist?: () => void;
   bestRate?: any;
   ratesLoading?: boolean;
+  rateError?: string | null;
+  rateRetryCount?: number;
   productStock?: { unit: number; status: boolean };
   stockLoading?: boolean;
 };
@@ -93,15 +98,11 @@ function Description(props: Props) {
   const [totalPrice, setTotalPrice] = useState<number>(0);
   const [cartLoading, setCartLoading] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
-  const LocalCart = useSelector(
-    (state: any) => state.LocalCart || { items: [] }
-  );
-  // const [favourited, setFavourited] = useState(props?.data ?? false);
   const [isWobbling, setIsWobbling] = useState(false);
   const [favourited, setFavourited] = useState(false);
-  const cart = useSelector((state: any) => state.Cart.items);
 
-  const cartItems = session?.token ? cart : LocalCart.items;
+  // Enhanced cart integration
+  const cartItems = useSelector(localCartItems);
 
   // Get standardized product ID for cart check
   const productId = getProductId(props?.data);
@@ -333,75 +334,54 @@ function Description(props: Props) {
 
     setCartLoading(true);
     try {
-      // Use German Standard API to add to cart
       const productId = getProductIdSafe(props?.data);
-
-      // Get customer ID from session token
-      const customerId = getCustomerIdFromSession(session);
-      if (!customerId) {
-        notification.error({ message: "Please log in to add items to cart" });
-        router.push("/login");
-        return;
-      }
-
-      // Calculate the proper rate including variant pricing
       const rate = props?.bestRate?.rate ?? props?.currentVariant?.price ?? props?.currentVariant?.rate ?? props?.data?.retail_rate ?? 0;
 
-      const cartRequest = {
-        transId: 0, // 0 for new cart item
-        date: new Date().toISOString().split('T')[0], // yyyy-MM-dd format
-        customer: customerId, // Dynamic customer ID from JWT token (nameid)
-        warehouse: 2, // Configurable warehouse (default: 2)
-        remarks: "Add to cart", // Required field
-        discountType: 0, // Required field - no discount
-        discountCouponRef: "", // Required field - no coupon
-        discountRef: "", // Required field - no discount reference
-        sampleRequestedBy: 0, // Required field - not a sample
-        product: Number(productId), // Product ID
-        qty: 1, // Always default to 1 as requested
-        rate: rate, // Unit price
-        unit: 1, // Default unit
-        totalRate: rate * 1, // rate * qty (always rate * 1)
-        addCharges: 0, // Required field - no additional charges
-        discount: 0, // Required field - no discount percentage
-        discountAmt: 0, // Required field - no discount amount
-        discountRemarks: "", // Required field - no discount remarks
-        be: 0 // Business Entity (changed from 1 to 0)
+      const productData = {
+        id: productId,
+        productId: productId,
+        name: props?.data?.name || props?.data?.Name,
+        price: rate,
+        image: props?.currentVariant?.image || props?.data?.image || props?.data?.Image,
+        unit: availableQuantity,
+        status: props?.data?.status,
+        variantId: props?.currentVariant?.id || null,
+        category: props?.data?.category,
+        code: props?.data?.code || props?.data?.Code,
+        description: props?.data?.description || props?.data?.Description,
+        availableQuantity: availableQuantity,
+        // Additional variant info
+        variantName: props?.currentVariant?.combination?.map((c: any) => c.value).join(' ') || null,
       };
 
-      console.log("🛒 Add to Cart - Request body:", cartRequest);
-
-      const response = await germanStandardApi.upsertCart(cartRequest);
-
-      console.log("📋 Add to Cart - Response body:", response);
-
-      message.success({
-        content: "Item added to cart successfully!",
-        key: "cart_addition",
-        duration: 3,
+      console.log("🛒 Add to Cart - Using unified cart service:", {
+        productName: productData.name,
+        quantity,
+        rate,
+        isAuthenticated: !!session?.token
       });
 
-      // Refresh cart data
-      try {
-        const cartSummary = await germanStandardApi.getCartSummary(customerId, true, 1, 100);
-        if (cartSummary.transactions && cartSummary.transactions.length > 0) {
-          // Transform German Standard cart data to match existing format
-          const transformedCart:any = cartSummary.transactions.map((item: any) => ({
-            id: item.TransId,
-            productId: item.product || item.productId || 1,
-            quantity: item.qty || 1,
-            price: item.rate || 0,
-            totalPrice: item.totalRate || (item.rate || 0) * (item.qty || 1),
-            name: `Product ${item.product || item.productId}`, // TODO: Get actual product name
-            image: "/images/no-image.jpg", // TODO: Get actual product image
-            unit: 999, // Default available units
-            variantId: null // No variants for now
-          }));
-          dispatch(storeCart(transformedCart));
+      const result = await cartServiceHelpers.addToCart(
+        productData,
+        quantity,
+        {
+          source: 'product_details_description',
+          showNotification: true
         }
-      } catch (err) {
-        console.error("Error refreshing cart:", err);
+      );
+
+      if (result.success) {
+        // Refresh cart state
+        const updatedCart = await cartServiceHelpers.getCart();
+        dispatch(setLocalCart(updatedCart));
+
+        message.success({
+          content: "Item added to cart successfully!",
+          key: "cart_addition",
+          duration: 3,
+        });
       }
+
     } catch (err: any) {
       console.error("❌ Add to Cart - Error:", err);
       message.error({
@@ -453,44 +433,62 @@ function Description(props: Props) {
   //   } catch (err) {}
   // };
 
-  const handleAddToLocalCart = () => {
-    if (props?.data?.status != true) {
-      notification.error({ message: `Product is Temporarily not Available` });
-      return;
-    } else if (props?.data?.unit == 0) {
-      notification.error({ message: `Product is Out of Stock!!` });
-      return;
-    } else if (quantity > props?.data?.unit) {
-      notification.error({ message: `Selected Quantity is Not Available.` });
-      return;
-    } else if (quantity === 0) {
-      notification.error({ message: `Please select at least 1 quantity.` });
-      return;
-    }
-
-    const productId = getProductIdSafe(props?.data);
-    const rate = props?.bestRate?.rate ?? props?.currentVariant?.price ?? props?.currentVariant?.rate ?? props?.data?.retail_rate ?? 0;
-
-    const cartItem = {
-      productId: productId,
-      pid: productId, // For backward compatibility
-      name: props?.data?.name || props?.data?.Name,
-      price: rate,
-      quantity: quantity,
-      image: props?.currentVariant?.image || props?.data?.image || props?.data?.Image,
-      variantId: props?.currentVariant?.id || null,
-      variantName: props?.currentVariant?.combination?.map((c: any) => c.value).join(' ') || null,
-      totalPrice: totalPrice,
-      availableQuantity: availableQuantity,
-      storeId: props?.data?.store_id,
-      storeName: props?.data?.storeDetails?.store_name,
-    };
-
+  const handleAddToLocalCart = async () => {
     try {
-      dispatch(addToLocalCart(cartItem));
-    } catch (error) {
+      setCartLoading(true);
+
+      const productId = getProductIdSafe(props?.data);
+      const rate = props?.bestRate?.rate ?? props?.currentVariant?.price ?? props?.currentVariant?.rate ?? props?.data?.retail_rate ?? 0;
+
+      const productData = {
+        id: productId,
+        productId: productId,
+        name: props?.data?.name || props?.data?.Name,
+        price: rate,
+        image: props?.currentVariant?.image || props?.data?.image || props?.data?.Image,
+        unit: availableQuantity,
+        status: props?.data?.status,
+        variantId: props?.currentVariant?.id || null,
+        category: props?.data?.category,
+        code: props?.data?.code || props?.data?.Code,
+        description: props?.data?.description || props?.data?.Description,
+        availableQuantity: availableQuantity,
+        storeId: props?.data?.store_id,
+        storeName: props?.data?.storeDetails?.store_name,
+        // Additional variant info
+        variantName: props?.currentVariant?.combination?.map((c: any) => c.value).join(' ') || null,
+      };
+
+      console.log("🔍 Adding to local cart from details page:", {
+        productName: productData.name,
+        quantity,
+        rate,
+        availableQuantity
+      });
+
+      const result = await cartServiceHelpers.addToCart(
+        productData,
+        quantity,
+        {
+          source: 'product_details_local',
+          showNotification: true
+        }
+      );
+
+      if (result.success) {
+        // Refresh cart state
+        const updatedCart = await cartServiceHelpers.getCart();
+        dispatch(setLocalCart(updatedCart));
+      }
+
+    } catch (error: any) {
       console.error("Error adding to local cart:", error);
-      notification.error({ message: "Failed to add item to cart" });
+      notification.error({
+        message: "Failed to add item to cart",
+        description: error.message || "Please try again"
+      });
+    } finally {
+      setCartLoading(false);
     }
   };
 
@@ -583,37 +581,61 @@ function Description(props: Props) {
       {/* <div>category: {props?.data?.categoryName?.name}</div>
       <div>subCategory: {props?.data?.subCategoryName?.name}</div> */}
       <div className=" justify-content-between align-items-center">
-        {/* Only show pricing section if we have valid price data */}
-        {(props?.bestRate?.rate > 0 || totalPrice > 0) && (
-          <div className="d-flex fw-bold">
-            <div className="ts-5 detail-head mt-4">
-              {props?.ratesLoading ? (
-                <span className="text-muted">Loading prices...</span>
-              ) : props?.bestRate ? (
-                <div>
-                  <div className="fw-bold">
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: settings.currency ?? "INR",
-                    }).format(props.bestRate.rate)}
-                    <span className="text-muted small ms-1">/ {props.bestRate.unitName}</span>
+        {/* Enhanced pricing section - always visible with comprehensive status feedback */}
+        <div className="d-flex fw-bold">
+          <div className="ts-5 detail-head mt-4">
+            {/* Prioritize showing price if available, regardless of rateError */}
+            {props?.ratesLoading ? (
+              <div className="border rounded p-3 bg-light">
+                <div className="d-flex align-items-center gap-2 mb-2">
+                  <div className="spinner-border spinner-border-sm text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
                   </div>
-                  <div className="small text-muted">
-                    Total: {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: settings.currency ?? "INR",
-                    }).format(totalPrice)}
-                  </div>
+                  <span className="text-primary fw-bold">
+                    {props?.rateRetryCount && props.rateRetryCount > 0 ?
+                      `Retrying... (Attempt ${props.rateRetryCount + 1}/3)` :
+                      'Loading live pricing...'
+                    }
+                  </span>
                 </div>
-              ) : totalPrice > 0 ? (
-                new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: settings.currency ?? "INR",
-                }).format(totalPrice)
-              ) : null}
-            </div>
+                {props?.rateRetryCount && props.rateRetryCount > 0 && (
+                  <div className="small text-warning">
+                    <div className="progress mb-2" style={{ height: '4px' }}>
+                      <div
+                        className="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                        style={{ width: `${((props.rateRetryCount + 1) / 3) * 100}%` }}
+                      />
+                    </div>
+                    ⚠️ Connection issues detected - retrying automatically
+                  </div>
+                )}
+                <div className="small text-muted">
+                  📡 Fetching real-time rates from German Standard API...
+                </div>
+              </div>
+            ) : props?.bestRate?.rate > 0 ? (
+              <div>
+                <div className="fw-bold text-success">
+                  AED {props.bestRate.rate.toFixed(2)}
+                </div>
+              </div>
+            ) : totalPrice > 0 ? (
+              <div>
+                <div className="fw-bold text-primary">
+                  AED {(totalPrice / quantity).toFixed(2)}
+                </div>
+              </div>
+            ) : props?.rateError ? (
+              <></>
+            ) : (
+              <div>
+                <div className="text-muted">
+                  Price on request
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
         <br />
         <div className="d-flex gap-2">
           <div className="d-flex gap-3 align-items-center product-qnty">
@@ -646,29 +668,77 @@ function Description(props: Props) {
             />
           </div>
 
-          {/* Quantity availability indicator */}
+          {/* Enhanced quantity availability indicator */}
           <div className="ms-2 d-flex align-items-center">
-            <small className="text-muted">
-              {props?.stockLoading ? (
-                "Loading stock..."
-              ) : availableQuantity > 0 ? (
-                `(${availableQuantity} available)`
-              ) : (
-                "No stock available"
-              )}
-            </small>
+            {props?.stockLoading ? (
+              <div className="d-flex align-items-center gap-2">
+                <div className="spinner-border spinner-border-sm text-info" role="status" style={{ width: '12px', height: '12px' }}>
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <small className="text-info fw-bold">Checking stock levels...</small>
+              </div>
+            ) : (
+              <small className={`fw-bold ${
+                availableQuantity > 10 ? 'text-success' :
+                availableQuantity > 0 ? 'text-warning' :
+                'text-danger'
+              }`}>
+                {availableQuantity > 0 ? (
+                  <span>
+                    <span className="badge bg-success bg-opacity-25 text-success me-1">✓</span>
+                    {availableQuantity} available
+                  </span>
+                ) : (
+                  <span>
+                    <span className="badge bg-danger bg-opacity-25 text-danger me-1">✗</span>
+                    Out of stock
+                  </span>
+                )}
+              </small>
+            )}
           </div>
         </div>
 
         <br />
           {props?.stockLoading ? (
-            <h5 className="text-muted">Checking stock...</h5>
+            <div className="alert alert-info d-flex align-items-center py-2">
+              <div className="spinner-border spinner-border-sm me-2" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <span className="fw-bold">Verifying stock availability...</span>
+            </div>
           ) : availableQuantity === 0 ? (
-            <h5 className="text-danger">Currently Out of Stock</h5>
+            <div className="alert alert-danger d-flex align-items-center py-2">
+              <span className="badge bg-danger me-2">⚠️</span>
+              <div>
+                <strong>Currently Out of Stock</strong>
+                <div className="small">This item is temporarily unavailable</div>
+              </div>
+            </div>
           ) : availableQuantity < quantity ? (
-            <h5 className="text-danger">{`Only ${availableQuantity} units left`}</h5>
+            <div className="alert alert-warning d-flex align-items-center py-2">
+              <span className="badge bg-warning me-2">⚠️</span>
+              <div>
+                <strong>Limited Stock Available</strong>
+                <div className="small">Only {availableQuantity} units remaining - please adjust quantity</div>
+              </div>
+            </div>
           ) : availableQuantity <= 5 ? (
-            <h5 className="text-warning">{`Only ${availableQuantity} units left`}</h5>
+            <div className="alert alert-warning d-flex align-items-center py-2">
+              <span className="badge bg-warning me-2">⏰</span>
+              <div>
+                <strong>Low Stock Alert</strong>
+                <div className="small">Only {availableQuantity} units left - order soon!</div>
+              </div>
+            </div>
+          ) : availableQuantity > 0 ? (
+            <div className="alert alert-success d-flex align-items-center py-2">
+              <span className="badge bg-success me-2">✓</span>
+              <div>
+                <strong>In Stock</strong>
+                <div className="small">{availableQuantity} units available for immediate shipping</div>
+              </div>
+            </div>
           ) : null}
           <br />
           <div className="d-flex gap-2 align-items-center button-container">
@@ -689,20 +759,20 @@ function Description(props: Props) {
               type="primary"
               icon={cartLoading ? undefined : <HiOutlineShoppingBag />}
               loading={cartLoading}
-              onClick={() => {
+              onClick={async () => {
                 if (isProductInCart) {
                   router.push("/cart");
                 } else {
                   if (session?.token) {
-                    // Use the new handler from parent component
+                    // Use the new handler from parent component or fallback to local method
                     if (props?.handleAddToCart) {
                       props.handleAddToCart(quantity);
                     } else {
-                      addToCart(props?.data, quantity);
+                      await addToCart(props?.data, quantity);
                     }
                   } else {
-                    // For non-logged in users - use Redux + localStorage via the LocalCartSlice
-                    handleAddToLocalCart();
+                    // For non-logged in users - use enhanced local cart service
+                    await handleAddToLocalCart();
                   }
                 }
               }}

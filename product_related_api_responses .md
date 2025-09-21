@@ -44,12 +44,5 @@ Response
 
 can use for search a product 
 
-http://103.120.178.195/Sang.GermanStandard.API/tag/getproducts?be=1&pageNumber=1&pageSize=25&search=soda%20lime&category=0&subCategory=0&itemBrand=0&type=0
 
 
-{
-  "status": "Success",
-  "statusCode": 2000,
-  "message": "Products retrieved.",
-  "result": "{\"Data\":[{\"Id\":2458,\"Name\":\"Soda Lime\",\"Code\":\"A21520604\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"},{\"Id\":2463,\"Name\":\"Soda Lime, 4.5 Kg (white/violet)\",\"Code\":\"215206\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"},{\"Id\":8964,\"Name\":\"Soda Lime, 4.5 L\",\"Code\":\"215205\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"},{\"Id\":16223,\"Name\":\"SODA LIME\",\"Code\":\"A21520604\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"},{\"Id\":16228,\"Name\":\"SODA LIME, 4.5 KG (WHITE/VIOLET)\",\"Code\":\"215206\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"},{\"Id\":22730,\"Name\":\"SODA LIME, 4.5 L\",\"Code\":\"215205\",\"Description\":\"\",\"ExtraDescription\":\"\",\"Image\":\"http://103.120.178.195/GSGImage/NoImage.jpg\"}],\"PageSummary\":[{\"TotalRows\":6,\"TotalPages\":1}]}"
-}

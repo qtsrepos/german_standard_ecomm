@@ -1,6 +1,5 @@
 import type { Action, ThunkAction } from "@reduxjs/toolkit";
 import { combineSlices, configureStore } from "@reduxjs/toolkit";
-import { CartSlice } from "@/redux/slice/cartSlice";
 import { SettingsSlice } from "@/redux/slice/settingsSlice";
 import { CategorySlice } from "@/redux/slice/categorySlice";
 import { persistStore, persistReducer } from "redux-persist";
@@ -19,7 +18,6 @@ import { ProductsSlice } from "../slice/productsSlice";
 
 
 const rootReducer = combineSlices(
-  CartSlice,
   CategorySlice,
   SettingsSlice,
   LocationSlice,
@@ -31,14 +29,16 @@ const rootReducer = combineSlices(
   WishlistSlice,
   OrdersSlice,
   ProductsSlice
- 
-
 );
 
 const persistConfig = {
   key: "nextme-nextjs",
   storage,
-  whitelist: ["Cart", "Category", "Settings", "Location", "Language", "Auth","Checkout","LocalCart","Wishlist","Orders","Products"],
+  // 🔄 Allow LocalCart to persist while excluding legacy Cart data
+  // Cart data is managed by enhanced LocalCart system with proper migration
+  whitelist: ["Category", "Settings", "Location", "Language", "Auth", "LocalCart", "Wishlist", "Orders", "Products"],
+  // Explicitly blacklist legacy cart-related slices to prevent old data persistence
+  blacklist: ["Cart", "Checkout"],
 };
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 

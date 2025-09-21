@@ -11,15 +11,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useSelector } from "react-redux";
 import { Badge } from "antd"; // Import antd Badge
+import { localCartItems } from "@/redux/slice/localcartSlice";
 import { LiaShoppingBagSolid } from "react-icons/lia";
 import CartDrawer from "../cartDrawer";
 
 function BottomTab() {
   const { data: session } = useSession(); // Get session from NextAuth
   const router = useRouter();
-  const cart = useSelector((state: any) => state.Cart);
-  const LocalCart = useSelector((state: any) => state.LocalCart);
-  const cartItems = session?.token ? cart.items : LocalCart.items;
+  // Use unified LocalCart for all users (both authenticated and non-authenticated)
+  const cartItems = useSelector(localCartItems);
   const pathname = usePathname()
 
   const [openDrawer, setOpenDrawer] = useState(false);
