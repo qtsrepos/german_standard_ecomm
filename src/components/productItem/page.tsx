@@ -366,7 +366,7 @@ interface ProductItemProps {
 
 function ProductItem(props: ProductItemProps) {
   const [isHovered, setIsHovered] = useState(false); // Added state for hover
-  const [productStock, setProductStock] = useState({ unit: 10, status: true });
+  const [productStock, setProductStock] = useState({ unit: 0, status: false }); // Changed default to 0 and false
   const navigate = useRouter();
   const dispatch = useDispatch();
   const Settings = useSelector(reduxSettings);
@@ -401,8 +401,11 @@ function ProductItem(props: ProductItemProps) {
   // Simple stock and status initialization
   useEffect(() => {
     // Stock: support transformed fields and raw API field `Stock`
-    const stockUnit = props?.item?.unit || props?.item?.stock || props?.item?.Stock || 10;
-    const stockStatus = props?.item?.status !== false && stockUnit > 0;
+    const stockUnit = props?.item?.unit || props?.item?.stock || props?.item?.Stock || 0; // Changed default to 0
+    // Status: only consider explicitly false status as unavailable
+    // If status is undefined/null, rely on stock quantity instead
+    const explicitStatus = props?.item?.status;
+    const stockStatus = explicitStatus === false ? false : stockUnit > 0;
 
     setProductStock({
       unit: stockUnit,
@@ -435,7 +438,7 @@ function ProductItem(props: ProductItemProps) {
   const differenceInMilliseconds = currentDate - givenDate;
 
   const updateQuantity = async (type: "add" | "reduce") => {
-    const availableQuantity = product.unit || 10;
+    const availableQuantity = product.unit || 0; // Changed default to 0
     const cartItem = cartItems?.find(
       (item: any) => item.productId === product.pid && item.variantId === null
     );
@@ -798,13 +801,9 @@ function ProductItem(props: ProductItemProps) {
         </div>
 
         {/* Enhanced Product Status Tags with Real Stock Information */}
-        {!product.status ? (
+        {product.status === false ? (
           <div className="product_status_tag position-absolute">
             <div className="badge2 red">not available</div>
-          </div>
-        ) : product.unit === -1 ? (
-          <div className="product_status_tag position-absolute">
-            <div className="badge2 grey">Stock Unknown</div>
           </div>
         ) : product.unit === 0 ? (
           <div className="product_status_tag position-absolute">
@@ -834,9 +833,9 @@ function ProductItem(props: ProductItemProps) {
         <div className="mt-1">
           <div className="d-flex justify-content-between align-items-center">
             <div className="small">
-              {product.unit === -1 ? (
-                <span className="text-warning">
-                  ⚠️ Stock info unavailable
+              {product.status === false ? (
+                <span className="text-danger">
+                  ❌ Not available
                 </span>
               ) : product.unit === 0 ? (
                 <span className="text-danger">
@@ -855,11 +854,6 @@ function ProductItem(props: ProductItemProps) {
             {product.unit > 0 && product.unit <= 10 && (
               <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>
                 Low Stock
-              </span>
-            )}
-            {product.unit === -1 && (
-              <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }}>
-                API Error
               </span>
             )}
           </div>

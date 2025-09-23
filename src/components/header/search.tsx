@@ -82,6 +82,37 @@ function SearchBar() {
       return;
     }
 
+    // Enhanced console logging for search data
+    console.log("🔍 SEARCH BUTTON CLICKED - Detailed Search Data:", {
+      timestamp: new Date().toISOString(),
+      searchInput: {
+        originalValue: values.search,
+        trimmedValue: searchQuery,
+        length: searchQuery.length,
+        hasSpecialChars: /[^a-zA-Z0-9\s]/.test(searchQuery)
+      },
+      categorySelection: {
+        selectedCategory: category,
+        categoryFromForm: values.category,
+        availableCategories: categories.length
+      },
+      formData: {
+        allValues: values,
+        hasSearchField: !!values.search,
+        hasCategoryField: !!values.category
+      },
+      navigation: {
+        route: `/search/${encodeURIComponent(searchQuery)}`,
+        encodedQuery: encodeURIComponent(searchQuery),
+        fullURL: `${window.location.origin}/search/${encodeURIComponent(searchQuery)}`
+      },
+      userAgent: navigator.userAgent,
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      }
+    });
+
     // Always search with the query, ignore category for now (can be added later)
     const route = `/search/${encodeURIComponent(searchQuery)}`;
     router.push(route);
@@ -91,7 +122,13 @@ function SearchBar() {
   return (
     <div >
       <Row className="" style={{ marginTop: 10 }}>
-        <Form form={form} onFinish={handleSearch}>
+        <Form form={form} onFinish={handleSearch} onFinishFailed={(errorInfo) => {
+          console.log("❌ SEARCH FORM SUBMISSION FAILED:", {
+            timestamp: new Date().toISOString(),
+            errorInfo,
+            formValues: form.getFieldsValue()
+          });
+        }}>
           <div className="search-bar"
             style={{
               display: "flex",

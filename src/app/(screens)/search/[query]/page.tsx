@@ -57,6 +57,34 @@ function Page() {
   const [initial, setInitial] = useState(true);
   const [selectedTags, setSelectedTags] = useState<any>(initialValues);
   const serchInput:any = params?.query;
+
+  // Enhanced console logging for search page initialization
+  console.log("📄 SEARCH PAGE LOADED - URL Parameters:", {
+    timestamp: new Date().toISOString(),
+    urlParams: {
+      query: params?.query,
+      decodedQuery: params?.query ? decodeURIComponent(params.query) : null,
+      page: searchParams.get("page"),
+      order: searchParams.get("order"),
+      price: searchParams.get("price"),
+      allSearchParams: Object.fromEntries(searchParams.entries())
+    },
+    location: {
+      latitude: Location?.latitude,
+      longitude: Location?.longitude,
+      hasLocation: !!Location?.latitude
+    },
+    settings: {
+      type: Settings?.type,
+      currency: Settings?.currency
+    },
+    initialSorting: selectedTags,
+    pageConfig: {
+      currentPage,
+      pageSize,
+      totalPages: meta?.pageCount || 0
+    }
+  });
   
   const getProducts = async (page: number) => {
     setLoading(true);
@@ -210,6 +238,65 @@ function Page() {
             currentPage: page,
           });
 
+          // Enhanced console logging for products after search completion
+          console.log("🎯 SEARCH COMPLETED - Products Data:", {
+            timestamp: new Date().toISOString(),
+            searchInfo: {
+              query: decodedSearchInput,
+              decodedQuery: decodeURIComponent(decodedSearchInput),
+              page,
+              pageSize,
+              sortType,
+              sortOrder,
+              activeSortTag: activeSortTag?.title,
+              totalResults: pageSummary.TotalRows || 0,
+              totalPages: pageSummary.TotalPages || 0
+            },
+            productsSummary: {
+              count: sortedProducts.length,
+              hasProducts: sortedProducts.length > 0,
+              firstProductName: sortedProducts[0]?.name || sortedProducts[0]?.Name || 'N/A',
+              lastProductName: sortedProducts[sortedProducts.length - 1]?.name || sortedProducts[sortedProducts.length - 1]?.Name || 'N/A',
+              priceRange: sortedProducts.length > 0 ? {
+                min: Math.min(...sortedProducts.map(p => p.price || p.retail_rate || 0)),
+                max: Math.max(...sortedProducts.map(p => p.price || p.retail_rate || 0)),
+                currency: Settings?.currency || 'AED'
+              } : null
+            },
+            productsPreview: sortedProducts.slice(0, 3).map((product, index) => ({
+              index: index + 1,
+              id: product.id || product._id || product.Id,
+              name: product.name || product.Name,
+              price: product.price || product.retail_rate || product.Rate,
+              currency: Settings?.currency || 'AED',
+              image: product.image || product.Image ? 'Has Image' : 'No Image',
+              unit: product.unit,
+              status: product.status,
+              category: product.category
+            })),
+            allProductIds: sortedProducts.map(p => p.id || p._id || p.Id),
+            metadata: {
+              searchContext: true,
+              searchQuery: decodedSearchInput,
+              searchPage: page,
+              searchPageSize: pageSize,
+              searchSortType: sortType,
+              searchSortOrder: sortOrder,
+              searchTimestamp: new Date().toISOString()
+            }
+          });
+
+          // Log sample product details for debugging
+          if (sortedProducts.length > 0) {
+            const sampleProduct = sortedProducts[0];
+            console.log("📋 SAMPLE PRODUCT DETAILS:", {
+              product: sampleProduct,
+              productKeys: Object.keys(sampleProduct),
+              metadata: sampleProduct._metadata,
+              fullProductData: sampleProduct.fullProductData
+            });
+          }
+
           console.log(`✅ Successfully fetched ${sortedProducts.length} products for search: ${decodedSearchInput}`, {
             sortType,
             sortOrder,
@@ -227,6 +314,11 @@ function Page() {
         }
       } else {
         // Clear results if no search input
+        console.log("🧹 CLEARING SEARCH RESULTS - No search input:", {
+          timestamp: new Date().toISOString(),
+          searchInput: serchInput,
+          reason: 'No search query provided'
+        });
         setProduct([]);
         setMeta({ itemCount: 0, pageCount: 0, hasNextPage: false, hasPrevPage: false, currentPage: page });
       }
@@ -235,6 +327,12 @@ function Page() {
       Notifications["error"]({
         message: "Failed to search products",
         description: err.message || "Please try again later",
+      });
+      console.log("🛑 SEARCH ERROR - Clearing products:", {
+        timestamp: new Date().toISOString(),
+        error: err.message || err,
+        searchQuery: serchInput,
+        reason: 'API Error occurred'
       });
       setProduct([]);
       setMeta({ itemCount: 0, pageCount: 0, hasNextPage: false, hasPrevPage: false, currentPage: page });
@@ -245,11 +343,24 @@ function Page() {
   };
   
   const changePage = async (page: number) => {
+    console.log("📄 PAGINATION - Changing search page:", {
+      timestamp: new Date().toISOString(),
+      fromPage: page,
+      toPage: page,
+      searchQuery: serchInput,
+      currentProductsCount: product.length
+    });
     await getProducts(page);
     setPage(page);
   };
   
   const handleChange = (index: number) => {
+    console.log("🔄 SORTING - Changing search sort:", {
+      timestamp: new Date().toISOString(),
+      newSortIndex: index,
+      searchQuery: serchInput,
+      currentProductsCount: product.length
+    });
     const array = [...selectedTags];
     const findex = array.findIndex((item: any) => item.status == true);
     if (findex != -1 && findex != index) {

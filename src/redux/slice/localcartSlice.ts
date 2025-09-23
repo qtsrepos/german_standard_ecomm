@@ -293,6 +293,16 @@ export const LocalCartSlice = createAppSlice({
       };
       state.itemLoadingStates = {};
       state.lastError = null;
+
+      // Clear localStorage to prevent old cart data from reappearing
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('enhanced_cart_items');
+        localStorage.removeItem('enhanced_cart_metadata');
+        // Also clear any legacy cart keys
+        localStorage.removeItem('cart_items');
+        localStorage.removeItem('cart');
+        console.log('🗑️ Cleared cart from localStorage');
+      }
     }),
 
     // Enhanced set entire cart action

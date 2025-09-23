@@ -3,148 +3,155 @@ import React from "react";
 import { IoInformationCircleOutline } from "react-icons/io5";
 import { GoArrowRight } from "react-icons/go";
 import { useSelector } from "react-redux";
-import { Alert, Button, Radio, Spin } from "antd";
-import CheckoutItem from "./checkoutItem";
+import { Alert, Button } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import "../style.scss"
 import PaymentBox from "./paymentBox";
+
 const antIcon = (
   <LoadingOutlined style={{ fontSize: 20, color: "#fff" }} spin />
 );
+
 const SummaryCard = (props: any) => {
   const Settings = useSelector((state: any) => state.Settings.Settings);
 
   console.log(props?.Cart?.Checkout);
 
+  const getSubtotal = () => {
+    let subtotal = 0;
+    if (Array.isArray(props?.Cart?.Checkout)) {
+      props?.Cart?.Checkout?.forEach((item: any) => {
+        subtotal += Number(item?.price * item?.quantity);
+      });
+    }
+    return Number(subtotal).toFixed(2);
+  };
+
+  const getVAT = () => {
+    const subtotal = getSubtotal();
+    const vatAmount = Number(subtotal) * 0.05; // 5% VAT
+    return Number(vatAmount).toFixed(2);
+  };
+
+  const getTotal = () => {
+    const subtotal = getSubtotal();
+    const vat = getVAT();
+    const total = Number(subtotal) + Number(vat);
+    return Number(total).toFixed(2);
+  };
+
   return (
     <div>
-      {/* <div className="Cart-row">
-        <div className="Cart-txt5">Checkout Summary</div>
+      <div className="Cart-row">
+        <div className="Cart-txt5">YOUR ORDER</div>
         <div style={{ flex: 1 }} />
-        <div className="Cart-txt6">{props?.Cart?.Checkout?.length} Item</div>
+        <div className="Cart-txt6">{props?.Cart?.Checkout?.length || 0} Item{(props?.Cart?.Checkout?.length || 0) !== 1 ? 's' : ''}</div>
       </div>
       <div className="Cart-line" />
+
+      {/* Order Items */}
       {props?.Cart?.Checkout?.map((item: any, index: number) => {
-        return <CheckoutItem key={index} data={item} Settings={Settings} />;
+        return (
+          <div key={index} style={{ padding: '15px 0', borderBottom: '1px solid #eee' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>
+                  {item?.name}
+                </div>
+                {item?.variantId && (
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                    Variant: {item?.combination?.map((c: any) => c.value).join(' ')}
+                  </div>
+                )}
+                <div style={{ fontSize: '12px', color: '#888' }}>
+                  Quantity: {item?.quantity}
+                </div>
+              </div>
+              <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                {Settings?.currency} {Number(item?.price * item?.quantity).toFixed(2)}
+              </div>
+            </div>
+          </div>
+        );
       })}
+
       <br />
+
+      {/* Order Totals */}
       <div className="Cart-row">
-        <div className="Cart-txt3">Total Product Price</div>
+        <div className="Cart-txt3">Subtotal</div>
         <div style={{ flex: 1 }} />
         <div className="Cart-txt4">
-          {Settings?.currency} {Number(props?.total).toFixed(2)}
+          {Settings?.currency} {getSubtotal()}
         </div>
       </div>
       <div style={{ margin: 15 }} />
+
+      <div className="Cart-row">
+        <div className="Cart-txt3">Shipping</div>
+        <div style={{ flex: 1 }} />
+        <div className="Cart-txt4 text-success">
+          {Settings?.currency} {Number(props?.delivery_charge || 0).toFixed(2)}
+        </div>
+      </div>
+      <div style={{ margin: 15 }} />
+
+      <div className="Cart-row">
+        <div className="Cart-txt3">VAT (5%)</div>
+        <div style={{ flex: 1 }} />
+        <div className="Cart-txt4">
+          {Settings?.currency} {getVAT()}
+        </div>
+      </div>
+      <div style={{ margin: 15 }} />
+
       <div className="Cart-row">
         <div className="Cart-txt3">Discount</div>
         <div style={{ flex: 1 }} />
         <div className="Cart-txt4 text-success">
-          -{Settings?.currency} {Number(props?.discount).toFixed(2)}
+          -{Settings?.currency} {Number(props?.discount || 0).toFixed(2)}
         </div>
       </div>
       <div style={{ margin: 15 }} />
-      <div className="Cart-row">
-        <div className="Cart-txt3">Tax</div>
+
+      <div className="Cart-line" />
+
+      <div className="Cart-row" style={{ padding: '15px 0' }}>
+        <div className="Cart-txt3" style={{ fontWeight: 'bold', fontSize: '16px' }}>Total</div>
         <div style={{ flex: 1 }} />
-        <div className="Cart-txt4">{Settings?.currency} 0.00</div>
-      </div>
-      <div style={{ margin: 15 }} />
-      <div className="Cart-row">
-        <div className="Cart-txt3">Delivery Charges</div>
-        <div style={{ flex: 1 }} />
-        <div className="Cart-txt4">
-          {Settings?.currency} {Number(props?.delivery_charge).toFixed(2)}
+        <div className="Cart-txt7" style={{ fontWeight: 'bold', fontSize: '18px' }}>
+          {Settings?.currency} {getTotal()}
         </div>
       </div>
-      <div className="Cart-line2" />
-      <div style={{ margin: 15 }} />
-      <div className="Cart-row">
-        <div className="Cart-txt3">Total :</div>
-        <div style={{ flex: 1 }} />
-        <div className="Cart-txt7">
-          {Settings?.currency} {Number(props?.grand_total).toFixed(2)}
-        </div>
-      </div>
-      <div className="Cart-line2" />
-      <div style={{ margin: 15 }} />
-      {props?.error ? (
-        <>
-          <Alert
-            type="error"
-            message={
-              <div className="Cart-error">
-                <IoInformationCircleOutline size={30} /> &nbsp;{props?.error}
-              </div>
-            }
-          />
-          <div style={{ margin: 15 }} />
-        </>
-      ) : null}
-      <div
-        className="Cart-btn1"
-        style={{ cursor: "pointer" }}
-        onClick={() => props?.placeOrder()}
+
+      <br />
+
+      {/* Payment Method Selection */}
+      <PaymentBox
+        method={props?.payment_method}
+        onChange={props?.onChange}
+      />
+
+      <br />
+
+      {/* Place Order Button */}
+      <Button
+        type="primary"
+        size="large"
+        block
+        onClick={props?.placeOrder}
+        loading={props?.loading}
+        disabled={props?.loading}
+        style={{
+          height: '50px',
+          backgroundColor: '#E9421A',
+          borderColor: '#E9421A',
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}
       >
-        <div>PLACE ORDER</div>
-        <div className="Cart-btn1Box">
-          {props?.loading ? <Spin indicator={antIcon} /> : <GoArrowRight />}
-        </div>
-      </div> */}
-
-      <div className="container mt-4">
-        <div className="order-section ">
-          <h5 className="text-center mb-4 fw-semibold">YOUR ORDER</h5>
-          <div className="order-items  p-4">
-            <div className="row fw-bold border-bottom py-2 mb-3">
-              <div className="col-8">PRODUCT</div>
-              <div className="col-4 text-end">SUBTOTAL</div>
-            </div>
-
-            {props?.Cart?.Checkout?.map((item: any, index: number) => (
-              <div className="row py-3 border-bottom items" key={index}>
-                <div className="col-8 ">{item.name} × {item.quantity}</div>
-                <div className="col-4 text-end">{Number(item.totalPrice).toFixed(2)} {Settings?.currency}</div>
-              </div>
-            ))}
-
-            <div className="row border-bottom py-3 fw-bold">
-              <div className="col-8">Subtotal</div>
-              <div className="col-4 text-end total"> {Number(props?.total).toFixed(2)} {Settings?.currency}</div>
-            </div>
-
-            <div className="row  border-bottom py-3 fw-bold">
-              <div className="col-8">Shipping</div>
-              <div className="col-4 text-end">{Number(props?.delivery_charge).toFixed(2)} {Settings?.currency}</div>
-            </div>
-
-            <div className="row  border-bottom py-3 fw-bold">
-              <div className="col-8">VAT</div>
-              <div className="col-4 text-end total">0.00 {Settings?.currency}</div>
-            </div>
-
-            <div className="row py-3 fw-bold">
-              <div className="col-8">Total</div>
-              <div className="col-4 text-end total">{Settings?.currency} {Number(props?.grand_total).toFixed(2)} {Settings?.currency}</div>
-            </div>
-          </div>
-          <PaymentBox onChange={props?.onChange}/>
-          {/* <div className="mt-4">
-            <Radio.Group defaultValue="cashOnDelivery">
-              <Radio value="cashOnDelivery">Cash on delivery</Radio>
-              <Radio value="ccAvenue">CCAvenue</Radio>
-              <Radio value="creditTerms">Agreed Credit Terms</Radio>
-            </Radio.Group>
-          </div> */}
-
-          <p className="text-muted small mt-3 border-top pt-4">
-            Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our privacy policy.
-          </p>
-
-          <Button type="primary" className="place-order-btn" 
-          onClick={() => props?.placeOrder()} >Proceed to pay</Button>
-        </div>
-      </div>
+        {props?.loading ? 'PROCESSING...' : 'PLACE ORDER'}
+      </Button>
     </div>
   );
 };

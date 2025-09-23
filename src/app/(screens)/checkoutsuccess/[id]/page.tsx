@@ -8,6 +8,7 @@ import { Card, Col, Container, Row } from "react-bootstrap";
 import { Avatar, Button, List, Spin, notification } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { clearCheckout } from "@/redux/slice/checkoutSlice";
+import { clearLocalCart } from "@/redux/slice/localcartSlice";
 import { GET, POST } from "@/util/apicall";
 import API from "@/config/API";
 import { germanStandardApi } from "@/services/germanStandardApi";
@@ -31,15 +32,22 @@ function Checkout() {
   const [orderStatus, setOrderStatus] = useState<any>();
   const [Notifications, contextHolder] = notification.useNotification();
   //   const User = useSelector((state: any) => state.User.user);
-  const { data: user }: any = useSession();
+  const { data: user, status: sessionStatus }: any = useSession();
   const User = user?.user;
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [responseData, setResponseData] = useState<any>({});
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [transactionData, setTransactionData] = useState<any>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    // Wait for session to load before processing order
+    if (sessionStatus === 'loading') {
+      console.log('⏳ Session still loading, waiting...');
+      return;
+    }
     PlaceOrder();
-  }, []);
+  }, [sessionStatus]);
 
   const getOrderItems = (response: any[]) => {
     const array: any[] = [];
@@ -55,6 +63,113 @@ function Checkout() {
     setOrderItems(array);
   };
 
+  // Fetch transaction details from German Standard API
+  const fetchTransactionDetails = async (transactionId: string) => {
+    try {
+      console.log("🔍 Fetching transaction details for ID:", transactionId);
+      console.log("🔍 Session status:", sessionStatus);
+      console.log("🔍 User data:", user);
+
+      if (!transactionId || transactionId === "undefined") {
+        throw new Error("Invalid transaction ID");
+      }
+
+      // Check if user is authenticated
+      if (sessionStatus === 'unauthenticated') {
+        console.log("❌ User is not authenticated, redirecting to login");
+        Notifications["warning"]({
+          message: "Authentication Required",
+          description: "Please log in to view order details.",
+          duration: 5,
+        });
+        // Optionally redirect to login page
+        // router.push('/login');
+        return null;
+      }
+
+      if (!user?.token && !user?.accessToken) {
+        console.log("❌ Access token not available");
+        console.log("🔍 Available user properties:", Object.keys(user || {}));
+        Notifications["warning"]({
+          message: "Authentication Issue",
+          description: "Unable to authenticate. Please refresh the page or log in again.",
+          duration: 5,
+        });
+        return null;
+      }
+
+      // Try different token locations based on session structure
+      const accessToken = user?.token || user?.accessToken;
+
+      const response = await fetch(`${API.GERMAN_STANDARD_TRANSACTION_DETAILS}?id=${transactionId}&docType=1&be=1`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📋 Transaction details response:", data);
+      console.log("📋 Response status:", data.status);
+      console.log("📋 Response result:", data.result);
+
+      if (data.status === "Success" && data.result) {
+        console.log("✅ API call successful, parsing result...");
+        try {
+          // Parse the nested JSON in result field
+          const parsedResult = JSON.parse(data.result);
+          console.log("✅ Parsed transaction data:", parsedResult);
+
+          setTransactionData(data);
+          setOrderDetails(parsedResult);
+
+          // Convert body items to orderItems format
+          if (parsedResult.Body && Array.isArray(parsedResult.Body)) {
+            const convertedOrderItems = parsedResult.Body.map((item: any, index: number) => ({
+              id: `${transactionId}-${index}`,
+              productId: item.Product,
+              name: item.Product_Name,
+              quantity: item.Quantity,
+              price: item.Rate,
+              totalPrice: item.Quantity * item.Rate,
+              unit: item.Unit,
+              unit_name: item.Unit_Name,
+              vat: item.Vat,
+              discount: item.Discount,
+              discountAmount: item.DiscountAmt,
+              addcharges: item.Addcharges
+            }));
+
+            setOrderItems(convertedOrderItems);
+            console.log("✅ Order items converted:", convertedOrderItems);
+          }
+
+          return parsedResult;
+        } catch (parseError) {
+          console.error("❌ Error parsing API response JSON:", parseError);
+          console.error("❌ Raw result data:", data.result);
+          throw new Error("Failed to parse transaction details response");
+        }
+      } else {
+        console.log("❌ API response not successful:", data);
+        throw new Error(data.message || "Failed to fetch transaction details");
+      }
+    } catch (error: any) {
+      console.error("❌ Error fetching transaction details:", error);
+      Notifications["error"]({
+        message: "Failed to Load Order Details",
+        description: error.message || "Unable to fetch order details. Please try again.",
+        duration: 5,
+      });
+      throw error; // Re-throw to allow calling code to handle it
+    }
+  };
+
   // const checkCart = async () => {
   //   try {
   //     if (User) {
@@ -62,20 +177,13 @@ function Checkout() {
   //       console.log('this is the cart data', cartItems)
   //       if (cartItems.status) {
   //         dispatch(storeCart(cartItems.data));
-  //         return;
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log('error', error)
-  //   }
-  // }
 
   const PlaceOrder = async () => {
     try {
       console.log("🚀 Starting German Standard order creation process");
 
       // Check if we have an order ID from cart drawer (URL parameter)
-      const orderId = params?.id;
+      const orderId = Array.isArray(params?.id) ? params.id[0] : params?.id;
       console.log("📋 URL Order ID:", orderId);
 
       // If we have an order ID from URL, we're coming from cart drawer - skip duplicate order creation
@@ -85,23 +193,25 @@ function Checkout() {
         // Clear checkout data to prevent future conflicts
         dispatch(clearCheckout());
 
+        // Clear the cart since the order was successful
+        dispatch(clearLocalCart());
+
         // Set success state directly
         setOrderStatus(true);
         setPaymentStatus(true);
 
-        // Create minimal order data for display
-        const mockOrderData = [{
-          id: orderId,
-          transId: orderId,
-          orderItems: [] // Will be populated if needed
-        }];
-
-        setOrderItems([]);
-        setResponseData(mockOrderData);
+        try {
+          // Fetch real transaction details from API
+          await fetchTransactionDetails(orderId);
+          console.log("✅ Transaction details fetched successfully");
+        } catch (error) {
+          console.error("❌ Error fetching transaction details:", error);
+          // Continue with basic order display even if API fails
+        }
 
         Notifications["success"]({
           message: "Order Placed Successfully!",
-          description: `Your order has been created with ID: ${orderId}`,
+          description: `Your order has been created with ID: ${orderId}. Cart has been cleared.`,
           duration: 5,
         });
 
@@ -128,7 +238,7 @@ function Checkout() {
       const orderRequest = germanStandardApi.convertCartToGermanStandardOrder(
         Checkout.cart,
         Checkout.address,
-        user, // session object
+        User, // Use User instead of user to avoid type issues
         paymentMethod
       );
 
@@ -142,28 +252,23 @@ function Checkout() {
       if (response?.success === true && response?.result) {
         console.log("✅ Order created successfully with ID:", response.result);
 
-        // For display purposes, create mock order items data (since German Standard API doesn't return order items)
-        const mockOrderData = [{
-          id: response.result,
-          transId: response.result,
-          orderItems: Checkout.cart.map((item: any, index: number) => ({
-            id: `${response.result}-${index}`,
-            productId: item.productId || item.pid,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price || item.retail_rate,
-            totalPrice: (item.quantity || 1) * (item.price || item.retail_rate || 0),
-            image: item.image
-          }))
-        }];
-
-        getOrderItems(mockOrderData);
-        setOrderStatus(true);
-        setResponseData(mockOrderData);
-
         // Clear checkout data
         dispatch(clearCheckout());
+
+        // Clear the cart since the order was successful
+        dispatch(clearLocalCart());
+
         setPaymentStatus(true);
+
+        try {
+          // Fetch real transaction details from API
+          await fetchTransactionDetails(String(response.result) as string);
+        } catch (error) {
+          console.error("Error fetching transaction details:", error);
+          // Continue with basic order display even if API fails
+        }
+
+        setOrderStatus(true);
 
         // Show success notification with special handling for Focus system warnings
         if (response.message && response.message.includes("failed Posting to Focus")) {
@@ -175,7 +280,7 @@ function Checkout() {
         } else {
           Notifications["success"]({
             message: "Order Placed Successfully!",
-            description: `Your order has been created with ID: ${response.result}`,
+            description: `Your order has been created with ID: ${response.result}. Cart has been cleared.`,
             duration: 5,
           });
         }
@@ -233,23 +338,62 @@ function Checkout() {
             <div className="px-lg-5">
               <div>
                 <p className="thank-you">Thank you. Your order has been received.</p>
+                {(() => { console.log("🔄 Rendering order success page with orderDetails:", orderDetails); return null; })()}
               </div>
               <Row className="text-center mt-4  pt-4">
                 <Col md={12} lg className="border-end border-lg-none">
                   <div className="text-muted ">Order number:</div>
-                  <div className="fw-bold">98285</div>
+                  <div className="fw-bold">{orderDetails?.Header?.[0]?.DocNo || params?.id || 'N/A'}</div>
                 </Col>
                 <Col md={12}  lg className="border-end border-lg-none">
                   <div className="text-muted">Date:</div>
-                  <div className="fw-bold">May 9, 2025</div>
+                  <div className="fw-bold">
+                    {orderDetails?.Header?.[0]?.Date
+                      ? (() => {
+                          try {
+                            return new Date(orderDetails.Header[0].Date).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            });
+                          } catch (error) {
+                            console.error('Date parsing error:', error);
+                            return 'Invalid Date';
+                          }
+                        })()
+                      : new Date().toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                    }
+                  </div>
                 </Col>
                 <Col md={12} lg  className="border-end border-lg-none">
                   <div className="text-muted">Email:</div>
-                  <div className="fw-bold">francis@gsgroup.co</div>
+                  <div className="fw-bold">{user?.user?.email || 'N/A'}</div>
                 </Col>
                 <Col md={12} lg  className="border-end border-lg-none">
                   <div className="text-muted">Total:</div>
-                  <div className="fw-bold">3,236.15 AED</div>
+                  <div className="fw-bold">
+                    {(() => {
+                      if (orderDetails?.Body && Array.isArray(orderDetails.Body)) {
+                        let apiTotal = 0;
+                        orderDetails.Body.forEach((item: any) => {
+                          const subtotal = (item.Quantity || 0) * (item.Rate || 0);
+                          const vat = subtotal * ((item.Vat || 0) / 100);
+                          const addCharges = item.Addcharges || 0;
+                          const discount = item.DiscountAmt || 0;
+                          apiTotal += subtotal + vat + addCharges - discount;
+                        });
+                        console.log('Main page API total:', apiTotal.toFixed(2));
+                        return `${apiTotal.toFixed(2)} AED`;
+                      } else {
+                        const total = (orderItems || []).reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+                        return `${total.toFixed(2)} AED`;
+                      }
+                    })()}
+                  </div>
                 </Col>
                 <Col md={12} lg>
                   <div className="text-muted">Payment method:</div>
@@ -261,13 +405,9 @@ function Checkout() {
                 Pay with cash upon delivery.
               </p>
 
-              <OrderItems orderItems={orderItems} address ={Checkout.address}/>
+              <OrderItems orderItems={orderItems} address={Checkout.address} orderDetails={orderDetails} />
             </div>
 
-            // <Row>
-            //   <Col sm={8} xs={12}>
-            //     <div className="checkout-box2">
-            //       <div>
             //         <div>
             //           <IoIosCheckmarkCircleOutline size={60} color="#15ad4c" />
             //         </div>

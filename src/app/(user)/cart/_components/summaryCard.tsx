@@ -7,13 +7,26 @@ import { reduxSettings } from "../../../../redux/slice/settingsSlice";
 const SummaryCard = (props: any) => {
   const Settings = useSelector(reduxSettings);
 
-  const getTotalPrice = (cartt: any) => {
-    let total = 0;
-    if (Array.isArray(cartt?.items) == true) {
-      cartt?.items?.forEach((item: any) => {
-        total += Number(item?.totalPrice);
+  const getSubtotal = (cartItems: any) => {
+    let subtotal = 0;
+    if (Array.isArray(cartItems)) {
+      cartItems?.forEach((item: any) => {
+        subtotal += Number(item?.price * item?.quantity);
       });
     }
+    return Number(subtotal).toFixed(2);
+  };
+
+  const getVAT = (cartItems: any) => {
+    const subtotal = getSubtotal(cartItems);
+    const vatAmount = Number(subtotal) * 0.05; // 5% VAT
+    return Number(vatAmount).toFixed(2);
+  };
+
+  const getTotalPrice = (cartItems: any) => {
+    const subtotal = getSubtotal(cartItems);
+    const vat = getVAT(cartItems);
+    const total = Number(subtotal) + Number(vat); // Subtotal + VAT
     return Number(total).toFixed(2);
   };
 
@@ -29,7 +42,7 @@ const SummaryCard = (props: any) => {
         <div className="Cart-txt3">Subtotal</div>
         <div style={{ flex: 1 }} />
         <div className="Cart-txt4">
-          {getTotalPrice(props?.Cart)} {Settings?.currency}
+          {getSubtotal(props?.cartItems)} {Settings?.currency}
         </div>
       </div>
       <div className="Cart-line-new" />
@@ -37,14 +50,14 @@ const SummaryCard = (props: any) => {
       <div className="Cart-row">
         <div className="Cart-txt3">Shipping</div>
         <div style={{ flex: 1 }} />
-        <div className="Cart-txt4"></div>
+        <div className="Cart-txt4">Free Shipping</div>
       </div>
       <div className="Cart-line-new" />
 
       <div className="Cart-row">
-        <div className="Cart-txt3">VAT</div>
+        <div className="Cart-txt3">VAT (5%)</div>
         <div style={{ flex: 1 }} />
-        <div className="Cart-txt4">0.00 {Settings?.currency}</div>
+        <div className="Cart-txt4">{getVAT(props?.cartItems)} {Settings?.currency}</div>
       </div>
       <div className="Cart-line-new" />
       <br />
@@ -53,7 +66,7 @@ const SummaryCard = (props: any) => {
         <div className="Cart-txt3">Total </div>
         <div style={{ flex: 1 }} />
         <div className="Cart-txt7">
-          {getTotalPrice(props?.Cart)} {Settings?.currency}
+          {getTotalPrice(props?.cartItems)} {Settings?.currency}
         </div>
       </div>
 
@@ -79,7 +92,7 @@ const SummaryCard = (props: any) => {
           justifyContent: "center",
           alignItems: "center",
         }}
-        onClick={() => props?.checkout()}
+        onClick={() => props?.goCheckout()}
       >
         <div>PROCEED TO CHECKOUT</div>
       </div>

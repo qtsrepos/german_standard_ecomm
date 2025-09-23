@@ -14,16 +14,11 @@ interface responseType {
               name: item?.name,
               totalPrice: Number(item?.price * item.quantity),
             };
-            if (
-              item?.status == true &&
-              Number(item?.unit >= Number(item?.quantity))
-            ) {
-              items.eligibleItems?.push(product);
-            } else {
-              items.nonEligibleItems?.push(product);
-              items.status = false;
-            }
-  
+
+            // Always add items to eligibleItems for checkout
+            items.eligibleItems?.push(product);
+            items.status = true; // Always allow checkout
+
             return items;
           },
           { eligibleItems: [], nonEligibleItems: [], status: true }
