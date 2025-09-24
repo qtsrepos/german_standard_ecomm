@@ -14,6 +14,7 @@ import CONFIG from "@/config/configuration";
 import MobileIcons from "./mobileicons";
 import BottomTab from "@/components/bottomTab";
 import CartInitializer from "@/components/cart/CartInitializer";
+import TokenRefreshHandler from "@/components/TokenRefreshHandler";
 
 export const metadata: Metadata = {
   title: CONFIG.NAME,
@@ -62,6 +63,7 @@ export default function RootLayout({
               <ConfigProvider theme={theme}>
                 <StoreProvider>
                   <CartInitializer />
+                  <TokenRefreshHandler />
                   <Header />
                   {children}
                   <MobileIcons />

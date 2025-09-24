@@ -1,6 +1,6 @@
 import { store } from "@/redux/store/store";
 import { updateTokens, setRefreshing, clearToken } from "@/redux/slice/authSlice";
-import { germanStandardRefreshTokens } from "@/services/germanStandardApi";
+import { germanStandardRegenerateTokens } from "@/services/germanStandardApi";
 
 /**
  * Utility class for handling token refresh operations
@@ -45,8 +45,8 @@ export class TokenRefreshUtil {
       // Set refreshing state
       store.dispatch(setRefreshing(true));
 
-      // Call the refresh token API
-      const response = await germanStandardRefreshTokens(refreshToken);
+      // Call the token regeneration API
+      const response = await germanStandardRegenerateTokens(refreshToken);
 
       if (response.status === "Success" && response.statusCode === 2000) {
         // Update tokens in Redux store
@@ -55,10 +55,10 @@ export class TokenRefreshUtil {
           refreshToken: response.result.refreshToken
         }));
 
-        console.log("Tokens refreshed successfully");
+        console.log("Tokens regenerated successfully");
         return true;
       } else {
-        console.error("Token refresh failed:", response.message);
+        console.error("Token regeneration failed:", response.message);
         return false;
       }
     } catch (error) {

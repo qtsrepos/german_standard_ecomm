@@ -418,7 +418,7 @@ export class GermanStandardApiService {
   public async login(loginRequest: LoginRequest): Promise<LoginResponse> {
     try {
       const response = await axios.post<LoginResponse>(
-        API.GERMAN_STANDARD_LOGIN,
+        `${API.BASE_URL}${API.GERMAN_STANDARD_LOGIN}`,
         loginRequest,
         {
           headers: {
@@ -446,7 +446,7 @@ export class GermanStandardApiService {
   public async refreshTokens(refreshToken: string): Promise<RefreshTokenResponse> {
     try {
       const response = await axios.get<RefreshTokenResponse>(
-        API.GERMAN_STANDARD_REFRESH_TOKEN,
+        `${API.BASE_URL}${API.GERMAN_STANDARD_REFRESH_TOKEN}`,
         {
           params: {
             refreshToken: refreshToken
@@ -1852,31 +1852,25 @@ export class GermanStandardApiService {
   }
 
   /**
-   * Get User Action - matches Swagger /user/getuseraction
+   * Regenerate Access Token - matches /login/regeneratetokens endpoint
    */
-  public async getUserAction(request: UserActionRequest = {}): Promise<any> {
+  public async regenerateTokens(refreshToken: string): Promise<RefreshTokenResponse> {
     try {
-      const headers = await this.getAuthHeaders();
-      
-      const params = new URLSearchParams();
-      if (request.userId !== undefined) params.append('userId', request.userId.toString());
-      if (request.actionId !== undefined) params.append('actionId', request.actionId.toString());
-      if (request.be !== undefined) params.append('be', request.be.toString());
+      const cleanRefreshToken = refreshToken.replace(/"/g, '');
 
-      const url = `${API.GERMAN_STANDARD_GET_USER_ACTION}?${params.toString()}`;
-      console.log("Fetching user actions:", url);
-
-      const response = await axios.get<ApiResponse>(url, { headers });
+      const response = await axios.get<RefreshTokenResponse>(
+        `${API.BASE_URL}${API.USER_REGENERATE_TOKENS}?refreshToken=${encodeURIComponent(cleanRefreshToken)}`
+      );
 
       if (response.data?.status === "Success" && response.data?.statusCode === 2000) {
-        console.log("User actions fetched successfully");
-        return response.data.result;
+        console.log("Tokens regenerated successfully");
+        return response.data;
       } else {
-        throw new Error(response.data?.message || "Failed to fetch user actions");
+        throw new Error(response.data?.message || "Token regeneration failed");
       }
     } catch (error: any) {
-      console.error("German Standard Get User Action API Error:", error);
-      throw new Error(error.response?.data?.message || error.message || "Failed to fetch user actions");
+      console.error("German Standard Token Regeneration API Error:", error);
+      throw new Error(error.response?.data?.message || error.message || "Token regeneration failed");
     }
   }
 }
@@ -1887,7 +1881,7 @@ export const germanStandardApi = GermanStandardApiService.getInstance();
 // Export individual functions for easier import - Updated to match Swagger APIs
 export const {
   login: germanStandardLogin,
-  refreshTokens: germanStandardRefreshTokens,
+  regenerateTokens: germanStandardRegenerateTokens,
   getCompany: germanStandardGetCompany,
   getCategories: germanStandardGetCategories,
   getProducts: germanStandardGetProducts,

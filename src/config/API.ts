@@ -14,6 +14,7 @@ const API = {
 
   LOGIN_EMAIL: "auth/login", //POST - Legacy endpoint
   USER_REFRESH_TOKEN: "auth/refresh-token", //POST..
+  USER_REGENERATE_TOKENS: "login/regeneratetokens", //GET - Token regeneration
   LOGIN_PHONE: "auth/phone-login", //POST
   LOGIN_GMAIL: "auth/google-login", //POST
   SIGNUP: "auth/signup", //POST
@@ -71,13 +72,12 @@ const API = {
   CATEGORY_BRAND: "category/brand", //GET all brands for a category
 
   // German Standard API Base URL
- // German Standard API Base URL
- GERMAN_STANDARD_BASE: "http://103.120.178.195/Sang.GermanStandard.API/",
+  GERMAN_STANDARD_BASE: "http://103.120.178.195/Sang.GermanStandard.API/",
 
- // Login APIs (from Swagger)
- GERMAN_STANDARD_LOGIN: "http://103.120.178.195/Sang.GermanStandard.API/login/login",
- GERMAN_STANDARD_REFRESH_TOKEN: "http://103.120.178.195/Sang.GermanStandard.API/login/regeneratetokens",
- GERMAN_STANDARD_GET_COMPANY: "http://103.120.178.195/Sang.GermanStandard.API/login/getcompany",
+  // Login APIs (from Swagger) - Using relative paths with BASE_URL
+  GERMAN_STANDARD_LOGIN: "login/login",
+  GERMAN_STANDARD_REFRESH_TOKEN: "login/regeneratetokens",
+  GERMAN_STANDARD_GET_COMPANY: "login/getcompany",
 
  // Tag APIs (from Swagger)
  GERMAN_STANDARD_TAG_LIST: "http://103.120.178.195/Sang.GermanStandard.API/tag/gettaglist",

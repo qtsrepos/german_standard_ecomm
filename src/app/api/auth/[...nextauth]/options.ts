@@ -1,9 +1,9 @@
 /**
  * NextAuth Configuration
- * 
+ *
  * This file configures NextAuth.js for authentication in the German Standard e-commerce application.
  * It uses the German Standard API for user authentication and creates JWT-based sessions.
- * 
+ *
  * Features:
  * - Credentials provider for email/password login
  * - Integration with German Standard API
@@ -15,6 +15,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { germanStandardApi, LoginRequest } from "@/services/germanStandardApi";
+import { TokenRefreshUtil } from "@/util/tokenRefresh";
+import API from "@/config/API";
 
 // Type definitions for better type safety
 interface UserData {
@@ -93,22 +95,54 @@ export const options: NextAuthOptions = {
           };
 
           // Call German Standard API
+          console.log("🔐 Attempting login with:", {
+            loginName: loginData.loginName,
+            entityId: loginData.entityId,
+            channelId: loginData.channelId,
+            baseUrl: API.BASE_URL
+          });
+
           const response = await germanStandardApi.login(loginData);
+
+          console.log("🔐 Login API Response:", {
+            status: response?.status,
+            statusCode: response?.statusCode,
+            message: response?.message,
+            hasResult: !!response?.result,
+            userDataType: typeof response?.result?.userData
+          });
 
           // Validate response
           if (response?.status !== "Success" || response?.statusCode !== 2000) {
+            console.error("❌ Login failed:", response?.message);
             throw new Error(response?.message || "Login failed");
           }
 
           // Parse user data from the response
-          const userDataArray: UserData[] = JSON.parse(response.result.userData);
-          if (!Array.isArray(userDataArray) || userDataArray.length === 0) {
-            throw new Error("Invalid user data received");
+          let userDataArray: UserData[];
+          try {
+            const userDataString = response.result.userData;
+            console.log("🔐 User data string:", userDataString.substring(0, 200) + "...");
+
+            if (typeof userDataString === 'string') {
+              userDataArray = JSON.parse(userDataString);
+            } else {
+              userDataArray = userDataString;
+            }
+
+            if (!Array.isArray(userDataArray) || userDataArray.length === 0) {
+              throw new Error("Invalid user data received");
+            }
+          } catch (parseError) {
+            console.error("❌ Failed to parse user data:", parseError);
+            throw new Error("Invalid user data format received from API");
           }
 
           const userData: UserData = userDataArray[0];
           const accessToken = response.result.accessToken.replace(/"/g, '');
           const refreshToken = response.result.refreshToken.replace(/"/g, '');
+
+          console.log("✅ Login successful for user:", userData.LoginName);
 
           return {
             id: userData.UserId.toString(),
@@ -207,6 +241,35 @@ export const options: NextAuthOptions = {
           ...token.user,
           ...session.user
         };
+      }
+
+      // Check if token needs refresh (only on server-side)
+      if (token.token && typeof window === "undefined") {
+        const isExpired = TokenRefreshUtil.isTokenExpired(token.token, 5); // 5 min buffer
+        if (isExpired && token.refreshToken) {
+          try {
+            console.log("Token expired, attempting regeneration...");
+            const refreshResult = await TokenRefreshUtil.refreshAccessToken();
+
+            if (refreshResult) {
+              // Get updated token from Redux store
+              const { store } = await import("@/redux/store/store");
+              const state = store.getState();
+              const newToken = state.Auth?.token;
+              const newRefreshToken = state.Auth?.refreshToken;
+
+              if (newToken && newRefreshToken) {
+                token.token = newToken;
+                token.refreshToken = newRefreshToken;
+                console.log("Token regenerated successfully in JWT callback");
+              }
+            }
+          } catch (error) {
+            console.error("Token regeneration failed in JWT callback:", error);
+            // Token regeneration failed, user will need to login again
+            token.error = "RefreshTokenExpired";
+          }
+        }
       }
 
       return token;
