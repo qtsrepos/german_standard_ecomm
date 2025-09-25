@@ -171,7 +171,7 @@ function Header() {
                           ? "Header-desk-menu Header-deskactive"
                           : "Header-desk-menu"
                       }
-                      onClick={() => router.push("/user/profile")}
+                      // onClick={() => router.push("/user/profile")} // Commented out navigation to profile
                       style={{
                         cursor: "pointer",
                         display: "flex",
