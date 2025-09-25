@@ -460,7 +460,7 @@ function ProductItem(props: ProductItemProps) {
         );
         if (result.success) {
           const updatedCart = await cartServiceHelpers.getCart();
-          dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
+          dispatch(setLocalCart(updatedCart));
         }
       } else if (newQuantity <= availableQuantity) {
         // Update quantity
@@ -472,7 +472,7 @@ function ProductItem(props: ProductItemProps) {
         );
         if (result.success) {
           const updatedCart = await cartServiceHelpers.getCart();
-          dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
+          dispatch(setLocalCart(updatedCart));
         }
       } else {
         notification.warning({
@@ -581,7 +581,7 @@ function ProductItem(props: ProductItemProps) {
       if (result.success) {
         // Refresh cart state
         const updatedCart = await cartServiceHelpers.getCart();
-        dispatch(LocalCartSlice.actions.setLocalCart(updatedCart));
+        dispatch(setLocalCart(updatedCart));
       }
 
     } catch (error: any) {
